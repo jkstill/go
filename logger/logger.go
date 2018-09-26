@@ -47,6 +47,11 @@ func Warn(message string) {
 func Error(message string) {
 	callingFuncName := getFunctionName()
 
+	// Enable out to stream as well as file
+
+	os.Setenv("RLOG_LOG_STREAM","stderr")
+	rlog.UpdateEnv()
+
 	rlog.Errorf("%s - %s", callingFuncName, message)
 
 	os.Exit(1)
@@ -54,6 +59,11 @@ func Error(message string) {
 
 func Critical(message string) {
 	callingFuncName := getFunctionName()
+
+	// Enable out to stream as well as file
+
+	os.Setenv("RLOG_LOG_STREAM","stderr")
+	rlog.UpdateEnv()
 
 	rlog.Criticalf("%s - %s", callingFuncName, message)
 
@@ -87,6 +97,11 @@ func Warnf(messageFormat string, message ...interface{}) {
 func Errorf(messageFormat string, message ...interface{}) {
 	callingFuncName := getFunctionName()
 
+	// Enable out to stream as well as file
+
+	os.Setenv("RLOG_LOG_STREAM","stderr")
+	rlog.UpdateEnv()
+
 	messageFormat = callingFuncName + " - " + messageFormat
 
 	rlog.Errorf(messageFormat, message...)
@@ -96,6 +111,11 @@ func Errorf(messageFormat string, message ...interface{}) {
 
 func Criticalf(messageFormat string, message ...interface{}) {
 	callingFuncName := getFunctionName()
+
+	// Enable out to stream as well as file
+
+	os.Setenv("RLOG_LOG_STREAM","stderr")
+	rlog.UpdateEnv()
 
 	messageFormat = callingFuncName + " - " + messageFormat
 

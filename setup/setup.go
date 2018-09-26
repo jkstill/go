@@ -145,7 +145,7 @@ func Initialize() {
 	setConfig()
 }
 
-func SwitchConfigFile (configFile *string) {
+func SwitchConfigFile (configFile string) {
 	logger.Info("Switching config file to new value ...")
 
 	OldConfigFileName = ConfigFileName
@@ -157,7 +157,7 @@ func SwitchConfigFile (configFile *string) {
 	logger.Info("Process complete")
 }
 
-func SwitchLogDir (logDir *string) {
+func SwitchLogDir (logDir string) {
 	logger.Info("Switching log directory to new value ...")
 
 	OldLogDir = LogDir

@@ -3,6 +3,7 @@ package main
 // Standard imports
 
 import "flag"
+import "time"
 
 // Local imports
 
@@ -56,34 +57,34 @@ func validateFlags() {
 
 		if flagParam.Name == "config" || flagParam.Name == "c" {
 			logger.Infof("Config file switched from default to named file -> %s", configFile)
-			setup.SwitchConfigFile(configFile)
+			setup.SwitchConfigFile(*configFile)
 			logger.Tracef(1,"Config file now set to %s", setup.ConfigFileName)
 		} else if flagParam.Name == "log" || flagParam.Name == "l" {
 			logger.Infof("Switching log directory to new directory -> %s", logDir)
-			setup.SwitchLogDir(logDir)
+			setup.SwitchLogDir(*logDir)
 			//logger.SwitchLog()
 			logger.Tracef(1,"Log file now set to %s", setup.LogFileName)
 		} else if flagParam.Name == "erroremail" || flagParam.Name == "e" {
 			logger.Info("Validating error e-mail addresses ...")
-			if utils.CheckRegEx(errorEmail, emailRegEx) {
+			if utils.CheckRegEx(*errorEmail, emailRegEx) {
 				logger.Debugf("Error E-mail - %s validated", errorEmail)
 			} else {
 				logger.Errorf("Invalid error e-mail address list - %s", errorEmail)
 			}
 		} else if flagParam.Name == "email" || flagParam.Name == "E" {
 			logger.Info("Validating e-mail addresses ...")
-			if utils.CheckRegEx(email, emailRegEx) {
+			if utils.CheckRegEx(*email, emailRegEx) {
 				logger.Debugf("E-mail - %s validated", email)
 			} else {
 				logger.Errorf("Invalid e-mail address list - %s", email)
 			}
 		} else if flagParam.Name == "resource" || flagParam.Name == "r" {
 			logger.Info("Validating resources ...")
-			resourceRegEx := "([a-zA-Z0-9_]+=[0-9]+)+([:;.][a-zA-Z0-9_]+=[0-9]+)"
-			if utils.CheckRegEx(resource, resourceRegEx) {
-				logger.Debugf("Resources - %s - validated", resource)
+			resourceRegEx := "([a-zA-Z0-9_]+=[0-9]+)+([:;.][a-zA-Z0-9_]+=[0-9]+)*"
+			if utils.CheckRegEx(*resource, resourceRegEx) {
+				logger.Debugf("Resources - %s - validated", *resource)
 			} else {
-				logger.Errorf("Invalid resources - %s", resource)
+				logger.Errorf("Invalid resources - %s", *resource)
 			}
 		}
 	}
@@ -107,6 +108,8 @@ func main() {
 	validateFlags()
 
 	config.GetConfig()
+
+	time.Sleep(30*time.Second)
 
 	logger.Info("Process complete")
 }

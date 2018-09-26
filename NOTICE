@@ -6,7 +6,7 @@
 
 Used romans/rlog and modified in 2 ways 
 
-1) Amended level of bacxktrace from 2 to 3 as have wrapped own logger around rlog
+1) Amended level of backtrace from 2 to 3 as have wrapped own logger around rlog
 2) Added CheckLevel function to check what traceing level we have set current
    This was done so that if tracing or debug is set then extend details of logging 
    using the RLOG_CALLER_INFO variable.

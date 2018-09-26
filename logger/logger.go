@@ -3,28 +3,60 @@ package logger
 // standard imports
 
 import "os"
+import "path"
+import "runtime"
 
 // local imports
 
-import "github.com/romana/rlog"
+import "github.com/daviesluke/romana/rlog"
 
-// Functions
+// Local functions
+
+func getFunctionName() string {
+        var callingFuncName string
+
+        Trace(1,"Getting back trace info ...")
+        pc, _, _, ok := runtime.Caller(2)
+        if ok {
+                callingFuncName = runtime.FuncForPC(pc).Name()
+                Tracef(1,"Calling function name set to %s", callingFuncName)
+                callingFuncName = path.Base(callingFuncName)
+                Tracef(1,"Reduced function name to %s",callingFuncName)
+        } else {
+                Trace(1,"Failed to get back trace info from runtime.Caller")
+        }
+
+        return callingFuncName
+}
+
+
+// Global Functions
 
 func Info(message string) {
-	rlog.Info(message)
+	callingFuncName := getFunctionName()
+
+	rlog.Infof("%s - %s", callingFuncName, message)
 }
 
 func Warn(message string) {
-	rlog.Warn(message)
+	callingFuncName := getFunctionName()
+
+	rlog.Warnf("%s - %s", callingFuncName, message)
 }
 
-func Error(Message string) {
-	rlog.Error(Message)
+func Error(message string) {
+	callingFuncName := getFunctionName()
+
+	rlog.Errorf("%s - %s", callingFuncName, message)
+
 	os.Exit(1)
 }
 
 func Critical(message string) {
-	rlog.Critical(message)
+	callingFuncName := getFunctionName()
+
+	rlog.Criticalf("%s - %s", callingFuncName, message)
+
 	os.Exit(1)
 }
 
@@ -37,21 +69,39 @@ func Trace(traceLevel int, message string) {
 }
 
 func Infof(messageFormat string, message ...interface{}) {
+	callingFuncName := getFunctionName()
+
+	messageFormat = callingFuncName + " - " + messageFormat
+
 	rlog.Infof(messageFormat, message...)
 }
 
 func Warnf(messageFormat string, message ...interface{}) {
+	callingFuncName := getFunctionName()
+	
+	messageFormat = callingFuncName + " - " + messageFormat
+
 	rlog.Warnf(messageFormat, message...)
 }
 
-func Errorf(MessageFormat string, Message ...interface{}) {
-	rlog.Errorf(MessageFormat, Message...)
+func Errorf(messageFormat string, message ...interface{}) {
+	callingFuncName := getFunctionName()
+
+	messageFormat = callingFuncName + " - " + messageFormat
+
+	rlog.Errorf(messageFormat, message...)
+
 	os.Exit(1)
 }
 
 func Criticalf(messageFormat string, message ...interface{}) {
+	callingFuncName := getFunctionName()
+
+	messageFormat = callingFuncName + " - " + messageFormat
+
 	rlog.Criticalf(messageFormat, message...)
-	os.Exit(1)
+
+	os.Exit(2)
 }
 
 func Debugf(messageFormat string, message ...interface{}) {

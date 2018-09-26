@@ -40,11 +40,7 @@ var ConfigValues map[string]string
 // Global Functions
 
 func GetConfig() {
-	var callingFuncName string
-
-	callingFuncName = utils.GetFunctionName()
-
-	logger.Infof("%s - Reading configuration file ...", callingFuncName)
+	logger.Info("Reading configuration file ...")
 
 	// 
 	// Initialize string map
@@ -59,7 +55,7 @@ func GetConfig() {
 	logger.Debugf("Opening file %s ...", setup.ConfigFileName)
 	configFile, err := os.Open(setup.ConfigFileName)
 	if err != nil {
-		logger.Infof("%s\t- Unable to open file %s.  All defaults will be used.", callingFuncName, setup.ConfigFileName)
+		logger.Infof("Unable to open file %s.  All defaults will be used.", setup.ConfigFileName)
 	} else {
 		logger.Debugf("Config file %s opened", setup.ConfigFileName)
 
@@ -69,7 +65,7 @@ func GetConfig() {
 		defer configFile.Close()
 		logger.Tracef(1, "Deferred closing of file %s at end of function", setup.ConfigFileName)
 
-		logger.Infof("%s\t- Processing config file %s ...", callingFuncName, setup.ConfigFileName)
+		logger.Infof("Processing config file %s ...", setup.ConfigFileName)
 
 		configScanner := bufio.NewScanner(configFile)
 		logger.Tracef(1,"Set up scanner for config file. Entering loop ...")
@@ -101,7 +97,7 @@ func GetConfig() {
 			}
 
 			if len(variableTokens) != 2 {
-				logger.Errorf("%s\t- Malformed variables in config file -> %s", callingFuncName, configLine)
+				logger.Errorf("Malformed variables in config file -> %s", configLine)
 			}
 
 			ConfigValues[strings.TrimSpace(variableTokens[0])]=strings.TrimSpace(variableTokens[1])
@@ -113,9 +109,9 @@ func GetConfig() {
 			//
 
 			if utils.CheckRegEx(strings.TrimSpace(variableTokens[0]),".+Connection$") {
-				logger.Infof("%s\t- Set %s to %s", callingFuncName, strings.TrimSpace(variableTokens[0]), utils.RemovePassword(ConfigValues[strings.TrimSpace(variableTokens[0])]))
+				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), utils.RemovePassword(ConfigValues[strings.TrimSpace(variableTokens[0])]))
 			} else {
-				logger.Infof("%s\t- Set %s to %s", callingFuncName, strings.TrimSpace(variableTokens[0]), ConfigValues[strings.TrimSpace(variableTokens[0])])
+				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), ConfigValues[strings.TrimSpace(variableTokens[0])])
 			}
 
 
@@ -142,5 +138,5 @@ func GetConfig() {
 		}
 	}
 
-	logger.Infof("%s - Process complete", callingFuncName)
+	logger.Info("Process complete")
 }

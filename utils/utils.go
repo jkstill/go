@@ -4,9 +4,7 @@ package utils
 
 import "os"
 import "os/signal"
-import "path"
 import "regexp"
-import "runtime"
 import "strings"
 import "strconv"
 import "syscall"
@@ -20,24 +18,6 @@ import "github.com/daviesluke/logger"
 type fn func() 
 
 // Global functions 
-
-func GetFunctionName() string {
-	var callingFuncName string
-
-	logger.Trace(1,"Getting back trace info ...")
-	pc, _, _, ok := runtime.Caller(1)
-	if ok {
-		callingFuncName = runtime.FuncForPC(pc).Name()
-		logger.Tracef(1,"Calling function name set to %s", callingFuncName)
-		callingFuncName = path.Base(callingFuncName)
-		logger.Tracef(1,"Reduced function name to %s",callingFuncName)
-	} else {
-		logger.Trace(1,"Failed to get back trace info from runtime.Caller")
-	}
-
-	return callingFuncName
-}
-
 
 func CheckRegEx(checkString string, regEx string) bool {
 	logger.Tracef(1,"Set regular expression -> %s", regEx)
@@ -60,17 +40,14 @@ func CheckRegEx(checkString string, regEx string) bool {
 }
 
 func RemovePassword(checkString string) string {
-	var callingFuncName string
 	var userName        string
 
-	callingFuncName = GetFunctionName()
-
-	logger.Infof("%s - Removing any passwords found ...", callingFuncName)
+	logger.Info("Removing any passwords found ...")
 
 	logger.Trace(1,"Checking string for passwords ...")
 
 	if CheckRegEx(checkString, ".+/[^@]+") {
-		logger.Warnf("%s\t- Password in connection string - consider using SEPS", callingFuncName)
+		logger.Warn("Password in connection string - consider using SEPS")
 
 		logger.Debug("Removing password for display ...")
 	}
@@ -97,17 +74,13 @@ func RemovePassword(checkString string) string {
 		logger.Tracef(1,"Username now set to %s", userName)
 	}
 
-	logger.Infof("%s - Process complete - returning %s", callingFuncName, userName)
+	logger.Infof("Process complete - returning %s", userName)
 
 	return userName
 }
 
 func TrapSignal(runFunction fn) {
-	var callingFuncName string
-
-	callingFuncName = GetFunctionName()
-
-	logger.Infof("%s - Trapping signals ...", callingFuncName)
+	logger.Infof("Trapping signals ...")
 	
 	channel := make(chan os.Signal)
 	logger.Debug("Channel set for signals")
@@ -117,9 +90,11 @@ func TrapSignal(runFunction fn) {
 	go func() {
 		logger.Debug("About to block on signal input (In threaded process) ...")
 		signalRecieved := <-channel
-		logger.Infof("%s\t- Received signal %d", callingFuncName, signalRecieved)
+		logger.Infof("Received signal %d", signalRecieved)
 		runFunction()
 		logger.Debug("Exiting ...")
 		os.Exit(1)
 	}()
+
+	logger.Infof("Process complete")
 }

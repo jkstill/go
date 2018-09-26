@@ -593,6 +593,16 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 	// Extract information about the caller of the log function, if requested.
 	var callingFuncName string
 	var moduleAndFileName string
+
+	/*
+	###########################################################################
+	##  Amended Caller level from 2 to 3 as rlog is now wrapped in own logger
+	##  Luke - 26th September 2018
+	##
+	##  Original line -> pc, fullFilePath, line, ok := runtime.Caller(2)
+	##
+	###########################################################################
+	*/
 	pc, fullFilePath, line, ok := runtime.Caller(3)
 	if ok {
 		callingFuncName = runtime.FuncForPC(pc).Name()
@@ -762,6 +772,16 @@ func Criticalf(format string, a ...interface{}) {
 	basicLog(levelCrit, notATrace, false, format, "", a...)
 }
 
+/*
+###########################################################################
+##  Added function CheckLevel to enable to check what level currently set so
+##  can add extra tracing output if needed
+##
+##  Luke - 26th September 2018
+##
+###########################################################################
+*/
+
 // Checking whether current level at at or less than level input
 func CheckLevel(levelToken string) (bool) {
 	var allowLog      bool
@@ -777,8 +797,6 @@ func CheckLevel(levelToken string) (bool) {
 	} else {
 		allowLog=logFilterSpec.matchfilters("", filterLevel)
 	}
-
-	// Extract information about the caller of the log function, if requested.
 
 	return allowLog
 }

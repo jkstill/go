@@ -2,6 +2,7 @@ package utils
 
 // Standard imports
 
+import "bufio"
 import "os"
 import "os/signal"
 import "regexp"
@@ -97,4 +98,64 @@ func TrapSignal(runFunction fn) {
 	}()
 
 	logger.Infof("Process complete")
+}
+
+func LookupFile(searchFileName string, searchString string, searchIndex int, returnIndex int, delimiter string) string {
+	logger.Info("Looking up string file")
+	logger.Infof("Searching for %s in position %d in file %s demilited by %s ...", searchString, searchIndex, searchFileName, delimiter)
+
+	logger.Tracef("Trying to open file %s ...", searchFileName)
+
+	searchFile, err := os.Open(searchFileName)
+	if err != nil {
+		logger.Errorf("Unable to find file %s", searchFileName)
+	}
+
+	// Defer the close to auto close at the end of the procedure 
+
+	defer searchFile.Close()
+	logger.Tracef("Deferred closing of file %s at end of function", searchFileName)
+
+	searchScanner := bufio.NewScanner(searchFile)
+	logger.Tracef("Set up scanner for search file. Entering loop ...")
+
+	lineNo := 0
+	logger.Tracef("Set up variable LineNo and set to %d", lineNo)
+
+	for searchScanner.Scan() {
+		lineNo++
+		logger.Tracef("Line number incremented to %d", lineNo)
+
+		// Ignore blank lines and comments
+
+		searchLine := strings.TrimSpace(searchScanner.Text())
+		logger.Debugf("Trimmed search file line number %d contents - %s", lineNo, searchLine)
+
+		if searchLine == "" || searchLine[0] == '#' {
+			logger.Trace("Comment or blank line - ignoring line")
+			continue
+		}
+
+		variableTokens := strings.Split(searchLine, delimiter)
+		logger.Tracef("Line split into %d tokens using %s as delimiter", len(variableTokens), delimiter)
+
+		if len(variableTokens) == 0 {
+			logger.Trace("No tokens - ignoring line")
+			continue
+		}
+
+		if strings.TrimSpace(variableTokens[searchIndex-1]) == searchString {
+			if strings.TrimSpace(variableTokens[returnIndex-1]) != "" {
+				logger.Infof("Search criteria found.  Returning entry %d => %s",  returnIndex, strings.TrimSpace(variableTokens[returnIndex-1]))
+				return strings.TrimSpace(variableTokens[returnIndex-1])
+			} else {
+				logger.Debugf("NULL string in position %d in file %s for search string %s", returnIndex, searchFileName, searchString)
+			}
+		} else {
+			logger.Tracef("String %s does not match search %s", strings.TrimSpace(variableTokens[searchIndex-1]), searchString)
+		}
+	}
+
+	logger.Debug("Nothing found to return.  Returning empty string")
+	return ""
 }

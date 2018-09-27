@@ -4,11 +4,11 @@
 #
 #######################################################
 
-Used romans/rlog and modified in 2 ways 
+Used romana/rlog and modified in 2 ways 
 
 1) Amended level of backtrace from 2 to 3 as have wrapped own logger around rlog
-2) Added CheckLevel function to check what traceing level we have set current
-   This was done so that if tracing or debug is set then extend details of logging 
+2) Added CheckLevel function to check what tracing level we have currently set
+   This was done so that if tracing is on or debug is set then extend details of logging 
    using the RLOG_CALLER_INFO variable.
 3) Used own logger wrapper to enable switching out logging if needed in future
 

@@ -3,12 +3,15 @@ package general
 // Standard imports
 
 import "flag"
+import "os"
+import "strings"
 
 // Local imports
 
 import "github.com/daviesluke/logger"
 import "github.com/daviesluke/setup"
 import "github.com/daviesluke/utils"
+import "github.com/daviesluke/run_rman/config"
 
 // local Variables
 
@@ -93,6 +96,126 @@ func ValidateFlags () {
 	}
 
 	flag.Visit(visitor)
+
+	logger.Info("Process complete")
+}
+
+func SetEnvironment ( database string ) {
+	logger.Infof("Setting database environment ...")
+
+	// Checking for database name 
+
+	if database == "" {
+		// Check ORACLE_SID in the environment
+		
+		logger.Trace("Getting ORACLE_SID from environment")
+		setup.Database = os.Getenv("ORACLE_SID") 
+
+		if  setup.Database == "" {
+			// Check TWO_TASK to see if that is set (may have a env entry for that)
+
+			logger.Trace("Getting TWO_TASK from environment")
+			setup.Database = os.Getenv("TWO_TASK")
+
+			if setup.Database == "" {
+				//
+				// Last chance is to check the TargetConnection in config to see if that has any entries in the OraTabPath
+				//
+
+				// First check for anything specified in the file 
+			
+				config.SetConfig("", "TargetConnection")
+
+				if strings.Contains(config.ConfigValues["TargetConnection"],"@") {
+					logger.Trace("Getting database name from target connection in config file")
+
+					targetBreakdown := strings.SplitN(config.ConfigValues["TargetConnection"],"@",2)
+
+					setup.Database = targetBreakdown[1]
+
+					logger.Debug("Database set from TargetConnection")
+				} else {
+					logger.Errorf("Unable to find a database name.  Set in the command line option -d | -db.")
+				}
+			} else {
+				logger.Debug("Database set from TWO_TASK")
+			}
+		} else {
+			logger.Debug("Database set from ORACLE_SID")
+		}
+	} else {
+		setup.Database = database
+		logger.Debug("Database set from parameter")
+	}
+
+	logger.Infof("Database set to %s", setup.Database)
+
+	// Now we have the database name examine the OraTabPath to see if there are any overrides
+
+	config.SetConfig(setup.Database, "OraTabPath")
+
+	// Sets the correct ORACLE_SID environment 
+
+	os.Setenv("ORACLE_SID",setup.Database)
+	logger.Tracef("Set environment ORACLE_SID to %s", setup.Database)
+	os.Unsetenv("TWO_TASK")
+	logger.Trace("Unset TWO_TASK")
+
+	// Now check the environment to set the ORACLE_HOME
+
+	oracleHome := os.Getenv("ORACLE_HOME")
+
+	if oracleHome == "" {
+		// See if we can find Oracle Home in the envPath string
+
+		logger.Tracef("Looping around the OraTabPath %s", config.ConfigValues["OraTabPath"])
+
+		for _, envFile := range strings.Split(config.ConfigValues["OraTabPath"],":") {
+
+			logger.Debugf("Checking database in file %s", envFile)
+
+			// Check file exists
+
+			if _, err := os.Stat(envFile); err == nil {
+				oracleHome = utils.LookupFile(envFile,setup.Database,1,2,":")
+
+				if oracleHome != "" {
+					logger.Debug("Found entry in file. Breaking loop ...")
+					break
+				}
+			} else {
+				logger.Trace("File not found. Ignoring ...")
+			}
+		}
+
+		if oracleHome == "" {
+			logger.Errorf("Unable to locate an Oracle Home.  Use the correct SID and environment file.")
+		} else {
+			// Now set the ORACLE_HOME
+
+			logger.Trace("Setting the ORACLE_HOME env variable")
+			os.Setenv("ORACLE_HOME",oracleHome)
+		}
+	} else {
+		logger.Debug("ORACLE_HOME is already set")
+	}
+
+	// Now check it is a valid ORACLE_HOME containing both sqlplus and rman
+
+	commandSQLPLUS := strings.Join( []string{ oracleHome, "bin", "sqlplus"}, setup.DirDelimiter )
+	commandRMAN    := strings.Join( []string{ oracleHome, "bin", "rman"}, setup.DirDelimiter )
+
+	logger.Trace("Checking for SQLPLUS executable")
+	if _, err := os.Stat(commandSQLPLUS); err != nil {
+		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandSQLPLUS);
+	}
+
+	logger.Trace("Checking for RMAN executable")
+	if _, err := os.Stat(commandRMAN); err != nil {
+		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandRMAN);
+	}
+
+	logger.Infof("ORACLE_HOME set to %s", oracleHome)
 
 	logger.Info("Process complete")
 }

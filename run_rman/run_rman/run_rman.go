@@ -28,9 +28,11 @@ func main() {
 
 	general.ValidateFlags()
 
+	config.SetRMANScript()
+
 	config.GetConfig(setup.ConfigFileName)
 
-	//general.SetEnvironment(setup.Database, config.EnvFileNames)
+	general.SetEnvironment(setup.Database)
 
 	logger.Info("Process complete")
 }

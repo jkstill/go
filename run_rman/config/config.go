@@ -3,6 +3,7 @@ package config
 // standard imports
 
 import "bufio"
+import "flag"
 import "os"
 import "strings"
 
@@ -13,28 +14,26 @@ import "github.com/daviesluke/utils"
 
 // Global variables
 
-const ( 
-	DEFAULT_LogKeepTime       string = "14"
-	DEFAULT_NLS_DATE_FORMAT   string = "DD_MON_YYYY HH24:MI:SS"
-	DEFAULT_OraEnvPath        string = "/etc/oratab:/var/opt/oracle/oratab"
-	DEFAULT_CatalogConnection string = ""
-	DEFAULT_TargetConnection  string = "/"
-	DEFAULT_CheckLockMins     string = "5"
-	DEFAULT_CheckResourceMins string = "5"
-	DEFAULT_ParallelSlaves    string = "1"
-	DEFAULT_ChannelDevice     string = "DISK"
-	DEFAULT_FileFormat        string = ""
-	DEFAULT_RMANIgnoreErrors  string = ""
-	DEFAULT_EmailServer       string = "localhost:25"
-)
+// Initially set the defaults
 
+var ConfigValues = map[string]string {
+	"LogKeepTime"       : "14",
+	"NLS_DATE_FORMAT"   : "DD_MON_YYYY HH24:MI:SS",
+	"OraEnvPath"        : "/etc/oratab:/var/opt/oracle/oratab",
+	"CatalogConnection" : "",
+	"TargetConnection"  : "/",
+	"CheckLockMins"     : "5",
+	"CheckResourceMins" : "5",
+	"ParallelSlaves"    : "1",
+	"ChannelDevice"     : "DISK",
+	"FileFormat"        : "",
+	"RMANIgnoreErrors"  : "",
+	"EmailServer"       : "localhost:25",
+}
 
-var ConfigValues map[string]string
+var ConfigFileValues      map[string]string
 
-
-// Local functions
-
-
+var RMANScript        string
 
 // Global Functions
 
@@ -44,7 +43,7 @@ func GetConfig ( configFileName string ) {
 	// 
 	// Initialize string map
 	//
-	ConfigValues = make(map[string]string)
+	ConfigFileValues = make(map[string]string)
 	logger.Trace("Initialized config values map")
 
 	//
@@ -99,7 +98,7 @@ func GetConfig ( configFileName string ) {
 				logger.Errorf("Malformed variables in config file -> %s", configLine)
 			}
 
-			ConfigValues[strings.TrimSpace(variableTokens[0])]=strings.TrimSpace(variableTokens[1])
+			ConfigFileValues[strings.TrimSpace(variableTokens[0])]=strings.TrimSpace(variableTokens[1])
 			logger.Tracef("Set map key %s", strings.TrimSpace(variableTokens[0]))
 
 
@@ -108,9 +107,9 @@ func GetConfig ( configFileName string ) {
 			//
 
 			if utils.CheckRegEx(strings.TrimSpace(variableTokens[0]),".+Connection$") {
-				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), utils.RemovePassword(ConfigValues[strings.TrimSpace(variableTokens[0])]))
+				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), utils.RemovePassword(ConfigFileValues[strings.TrimSpace(variableTokens[0])]))
 			} else {
-				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), ConfigValues[strings.TrimSpace(variableTokens[0])])
+				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), ConfigFileValues[strings.TrimSpace(variableTokens[0])])
 			}
 
 
@@ -132,9 +131,51 @@ func GetConfig ( configFileName string ) {
 		// Print out map variables for debug
 		//
 		logger.Debug("Contents of config map - ")
-		for configKey , configValue := range ConfigValues {
+		for configKey , configValue := range ConfigFileValues {
 			logger.Debugf("Key : %s Value : %s", configKey, configValue)
 		}
+	}
+
+	logger.Info("Process complete")
+}
+
+func SetRMANScript () {
+	logger.Info("Setting the RMAN script ...")
+
+	programArgs := flag.Args()
+
+	if len(programArgs) < 1 {
+		logger.Errorf("Must provide one parameter. An RMAN script to run")
+	}
+
+	RMANScript = programArgs[0]
+	logger.Tracef("RMAN script set to %s", RMANScript)
+
+	// Check that file exists
+
+	if _, err := os.Stat(RMANScript); err == nil {
+		logger.Infof("RMAN script to run -> %s", RMANScript)
+	} else {
+		logger.Errorf("Unable to find RMAN script %s", RMANScript)
+	}
+
+	logger.Info("Process complete")
+}
+
+func SetConfig ( database string , configName string ) {
+	logger.Info("Overriding default config ...")
+
+	newConfigName := strings.Join( []string{ database, configName}, "_")
+	logger.Tracef("New config name set to %s", newConfigName)
+	
+	if ConfigFileValues[newConfigName] != "" {
+		ConfigValues[configName] = ConfigFileValues[newConfigName]
+		logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, ConfigValues[configName])
+	} else if ConfigFileValues[configName] != "" {
+		ConfigValues[configName] = ConfigFileValues[configName]
+		logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, ConfigValues[configName])
+	} else {
+		logger.Infof("No changes made from default name for %s - Value %s", configName, ConfigValues[configName])
 	}
 
 	logger.Info("Process complete")

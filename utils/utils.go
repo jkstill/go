@@ -20,21 +20,21 @@ type fn func()
 // Global functions 
 
 func CheckRegEx(checkString string, regEx string) bool {
-	logger.Tracef(1,"Set regular expression -> %s", regEx)
+	logger.Tracef("Set regular expression -> %s", regEx)
 	
-	logger.Tracef(1,"Checking to see if string %s matches regex", checkString)
+	logger.Tracef("Checking to see if string %s matches regex", checkString)
 	stringMatch, err := regexp.MatchString(regEx, checkString)
 	if err != nil {
 		logger.Errorf("Invalid regular exporession %s", regEx)
 	}
 
 	if stringMatch {
-		logger.Trace(1,"String matched!")
+		logger.Trace("String matched!")
 	} else {
-		logger.Trace(1,"String NOT matched!")
+		logger.Trace("String NOT matched!")
 	}
 
-	logger.Tracef(1,"Returning %s", strconv.FormatBool(stringMatch))
+	logger.Tracef("Returning %s", strconv.FormatBool(stringMatch))
 
 	return stringMatch
 }
@@ -44,7 +44,7 @@ func RemovePassword(checkString string) string {
 
 	logger.Info("Removing any passwords found ...")
 
-	logger.Trace(1,"Checking string for passwords ...")
+	logger.Trace("Checking string for passwords ...")
 
 	if CheckRegEx(checkString, ".+/[^@]+") {
 		logger.Warn("Password in connection string - consider using SEPS")
@@ -56,10 +56,10 @@ func RemovePassword(checkString string) string {
 	logger.Debugf("Split string using / delimiter into %d tokens.  Username is %s", len(upTokens), upTokens[0])
 
 	userName = upTokens[0]
-	logger.Tracef(1,"Username set to %s", userName)
+	logger.Tracef("Username set to %s", userName)
 
 	passWord := upTokens[1]
-	logger.Trace(1,"Password set")
+	logger.Trace("Password set")
 
 	if strings.Index(passWord,"@") != -1 {
 		logger.Debug("Password portion contains a TNS Alias")
@@ -68,10 +68,10 @@ func RemovePassword(checkString string) string {
 		logger.Debugf("Split string using @ delimiter into %d tokens.  TNS Alias is %s", len(passTokens), passTokens[1])
 
 		tnsAlias := passTokens[1]
-		logger.Tracef(1,"TNS Alias set to %s", tnsAlias)
+		logger.Tracef("TNS Alias set to %s", tnsAlias)
 
 		userName = strings.Join([]string{userName, tnsAlias},"@")
-		logger.Tracef(1,"Username now set to %s", userName)
+		logger.Tracef("Username now set to %s", userName)
 	}
 
 	logger.Infof("Process complete - returning %s", userName)

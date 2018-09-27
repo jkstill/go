@@ -3,7 +3,7 @@ package setup
 // Standard imports
 
 import "os"
-import "path"
+import "path/filepath"
 import "runtime"
 import "strings"
 import "strconv"
@@ -86,12 +86,12 @@ func setBase () {
 
 	logger.Tracef("Current Executable is set to %s",BaseName)
 
-	BaseDir = path.Dir(BaseName)
+	BaseDir = filepath.Dir(BaseName)
 	logger.Tracef("Base directory set to %s",BaseDir)
-	BaseDir = path.Dir(BaseDir)
+	BaseDir = filepath.Dir(BaseDir)
 	logger.Tracef("Base directory set to %s",BaseDir)
 
-	BaseName = path.Base(BaseName)
+	BaseName = filepath.Base(BaseName)
 	logger.Tracef("Base name set to %s",BaseName)
 }
 
@@ -173,7 +173,7 @@ func SwitchLogDir (logDir string) {
 	LogDir = logDir
 	logger.Tracef("Set new log directory name to %s", LogDir)
 
-	logFile := path.Base(LogFileName)
+	logFile := filepath.Base(LogFileName)
 	logger.Tracef("Set log file component to %s", logFile)
 	
 	SwitchLogFile(strings.Join([]string{LogDir, logFile}, DirDelimiter))

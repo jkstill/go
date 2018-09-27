@@ -3,7 +3,7 @@ package logger
 // standard imports
 
 import "os"
-import "path"
+import "path/filepath"
 import "runtime"
 
 // local imports
@@ -20,7 +20,7 @@ func getFunctionName() string {
         if ok {
                 callingFuncName = runtime.FuncForPC(pc).Name()
                 Tracef("Calling function name set to %s", callingFuncName)
-                callingFuncName = path.Base(callingFuncName)
+                callingFuncName = filepath.Base(callingFuncName)
                 Tracef("Reduced function name to %s",callingFuncName)
         } else {
                 Trace("Failed to get back trace info from runtime.Caller")

@@ -34,5 +34,7 @@ func main() {
 
 	general.SetEnvironment(setup.Database)
 
+	general.Cleanup()
+
 	logger.Info("Process complete")
 }

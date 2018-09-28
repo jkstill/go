@@ -35,6 +35,8 @@ var OldConfigFileName string
 var CurrentPID        string
 
 var DirDelimiter      string
+var OratabDelimiter   string
+var ExecutableSuffix  string
 
 var Database          string
 
@@ -56,7 +58,7 @@ func setPID () {
 	logger.Tracef("Current PID set to %s", CurrentPID)
 }
 
-func setDirDelimiter () {
+func setDelimiter () {
 	//
 	// Get current OS
 	//
@@ -64,8 +66,12 @@ func setDirDelimiter () {
 
 	if runtime.GOOS == "windows" {
 		DirDelimiter="\\"
+		OratabDelimiter=";"
+		ExecutableSuffix=".exe"
 	} else {
 		DirDelimiter="/"
+		OratabDelimiter=":"
+		ExecutableSuffix=""
 	}
 
 	logger.Tracef("Directory delimiter set to %s", DirDelimiter)
@@ -87,11 +93,19 @@ func setBase () {
 	logger.Tracef("Current Executable is set to %s",BaseName)
 
 	BaseDir = filepath.Dir(BaseName)
-	logger.Tracef("Base directory set to %s",BaseDir)
+	logger.Tracef("Interim Base directory set to %s",BaseDir)
 	BaseDir = filepath.Dir(BaseDir)
 	logger.Tracef("Base directory set to %s",BaseDir)
 
 	BaseName = filepath.Base(BaseName)
+	logger.Tracef("Base name set to %s",BaseName)
+
+	// Now remove any extentions if they are there ( windows .exe for example)
+
+	baseName := strings.SplitN(BaseName,".",2)
+	logger.Trace("Split string using .")
+
+	BaseName = baseName[0]
 	logger.Tracef("Base name set to %s",BaseName)
 }
 
@@ -141,7 +155,7 @@ func setConfig () {
 func Initialize() {
 	setPID()
 
-	setDirDelimiter()
+	setDelimiter()
 
 	setBase()
 

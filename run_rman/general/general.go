@@ -150,10 +150,6 @@ func SetEnvironment ( database string ) {
 
 	logger.Infof("Database set to %s", setup.Database)
 
-	// Now we have the database name examine the OraTabPath to see if there are any overrides
-
-	config.SetConfig(setup.Database, "OraTabPath")
-
 	// Sets the correct ORACLE_SID environment 
 
 	os.Setenv("ORACLE_SID",setup.Database)
@@ -161,56 +157,66 @@ func SetEnvironment ( database string ) {
 	os.Unsetenv("TWO_TASK")
 	logger.Trace("Unset TWO_TASK")
 
-	// Now check the environment to set the ORACLE_HOME
 
-	oracleHome := os.Getenv("ORACLE_HOME")
+	// See if we can find Oracle Home in the OraTabPath string
+
+	var oracleHome string
+
+	// Now we have the database name examine the OraTabPath to see if there are any overrides
+
+	config.SetConfig(setup.Database, "OraTabPath")
+
+	logger.Tracef("Looping around the OraTabPath %s", config.ConfigValues["OraTabPath"])
+
+	for _, envFile := range strings.Split(config.ConfigValues["OraTabPath"],setup.OratabDelimiter) {
+
+		logger.Debugf("Checking database in file %s", envFile)
+
+		// Check file exists
+
+		if _, err := os.Stat(envFile); err == nil {
+			oracleHome = utils.LookupFile(envFile,setup.Database,1,2,setup.OratabDelimiter)
+
+			if oracleHome != "" {
+				logger.Debug("Found entry in file. Breaking loop ...")
+				break
+			}
+		} else {
+			logger.Trace("File not found. Ignoring ...")
+		}
+	}
 
 	if oracleHome == "" {
-		// See if we can find Oracle Home in the envPath string
+		// Check to see if it is set in the environment
 
-		logger.Tracef("Looping around the OraTabPath %s", config.ConfigValues["OraTabPath"])
-
-		for _, envFile := range strings.Split(config.ConfigValues["OraTabPath"],":") {
-
-			logger.Debugf("Checking database in file %s", envFile)
-
-			// Check file exists
-
-			if _, err := os.Stat(envFile); err == nil {
-				oracleHome = utils.LookupFile(envFile,setup.Database,1,2,":")
-
-				if oracleHome != "" {
-					logger.Debug("Found entry in file. Breaking loop ...")
-					break
-				}
-			} else {
-				logger.Trace("File not found. Ignoring ...")
-			}
-		}
+		oracleHome := os.Getenv("ORACLE_HOME")
 
 		if oracleHome == "" {
 			logger.Errorf("Unable to locate an Oracle Home.  Use the correct SID and environment file.")
 		} else {
-			// Now set the ORACLE_HOME
-
-			logger.Trace("Setting the ORACLE_HOME env variable")
-			os.Setenv("ORACLE_HOME",oracleHome)
+			logger.Debug("Using ORACLE_HOME already set in environment")
 		}
 	} else {
-		logger.Debug("ORACLE_HOME is already set")
+		// Now set the ORACLE_HOME
+
+		logger.Trace("Setting the ORACLE_HOME env variable")
+		os.Setenv("ORACLE_HOME",oracleHome)
 	}
 
 	// Now check it is a valid ORACLE_HOME containing both sqlplus and rman
 
-	commandSQLPLUS := strings.Join( []string{ oracleHome, "bin", "sqlplus"}, setup.DirDelimiter )
-	commandRMAN    := strings.Join( []string{ oracleHome, "bin", "rman"}, setup.DirDelimiter )
+	commandSQLPLUS := strings.Join( [] string{ "sqlplus", setup.ExecutableSuffix }, "" )
+	commandRMAN    := strings.Join( [] string{ "rman"   , setup.ExecutableSuffix }, "" )
 
-	logger.Trace("Checking for SQLPLUS executable")
+	commandSQLPLUS = strings.Join( []string{ oracleHome, "bin", commandSQLPLUS}, setup.DirDelimiter )
+	commandRMAN    = strings.Join( []string{ oracleHome, "bin", commandRMAN}   , setup.DirDelimiter )
+
+	logger.Tracef("Checking for SQLPLUS executable - %s", commandSQLPLUS)
 	if _, err := os.Stat(commandSQLPLUS); err != nil {
 		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandSQLPLUS);
 	}
 
-	logger.Trace("Checking for RMAN executable")
+	logger.Tracef("Checking for RMAN executable - %s", commandRMAN)
 	if _, err := os.Stat(commandRMAN); err != nil {
 		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandRMAN);
 	}

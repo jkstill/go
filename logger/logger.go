@@ -2,6 +2,7 @@ package logger
 
 // standard imports
 
+import "io"
 import "os"
 import "path/filepath"
 import "runtime"
@@ -29,6 +30,37 @@ func getFunctionName() string {
         return callingFuncName
 }
 
+func copyFileContents( oldLogFileName string , newLogFileName string ) {
+	Trace("Copying file contents ...")
+
+	oldLogFile, err := os.Open(oldLogFileName)
+	if err != nil {
+		Errorf("Unable to open read file %s for copying", oldLogFileName)
+	}
+
+	defer oldLogFile.Close()
+
+	newLogFile, err := os.OpenFile(newLogFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		Errorf("Unable to open write file %s for copying", newLogFileName)
+	}
+
+	defer newLogFile.Close()
+
+	// Now copy the contents
+
+	if _, err := io.Copy(newLogFile, oldLogFile); err != nil {
+		Errorf("Unable to copy file %s to %s", oldLogFileName, newLogFileName)
+	}
+
+	// Flush anything out to disk 
+
+	newLogFile.Sync()
+	
+	// Deferred files to close at end 
+
+	Trace("Process complete")
+}
 
 // Global Functions
 
@@ -195,7 +227,7 @@ func Initialize(logDir string, logFileName string, logConfigFileName string) {
 	//
 	Tracef("About to open file %s (modes append, write only, create, perm=0600) ...",logFileName)
 
-	LogFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	LogFile, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 
 	if err != nil {
 		Errorf("Unable to open logfile %s", logFileName)
@@ -248,3 +280,38 @@ func Initialize(logDir string, logFileName string, logConfigFileName string) {
 		Debugf("File %s does not exist", logConfigFileName)
 	}
 }
+
+func CopyLog( oldLogFileName string , newLogFileName string ) {
+	Infof("Copying log %s to %s ...", oldLogFileName, newLogFileName)
+
+	// Check the newLogFileName does not already exist
+	if _, err := os.Stat(newLogFileName); err == nil {
+		Errorf("New log file %s exists with error %d.  Exiting ...", newLogFileName, err)
+	}
+
+	// Turn off output 
+	os.Unsetenv("RLOG_LOG_FILE")
+	rlog.UpdateEnv()
+	Trace("Turned off logging")
+
+	// File should be closed - ready to copy
+
+	copyFileContents( oldLogFileName, newLogFileName )
+
+	// Remove old log 
+
+	Trace("Removing old log ...")
+
+	err := os.Remove(oldLogFileName)
+	if err != nil {
+		Errorf("Unable to remove old log %s", oldLogFileName)
+	}
+
+	// Turn on output
+	os.Setenv("RLOG_LOG_FILE",newLogFileName)
+	rlog.UpdateEnv()
+	Trace("Turned on logging")
+
+	Info("Process complete")
+}
+

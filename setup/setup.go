@@ -15,6 +15,7 @@ import "github.com/daviesluke/logger"
 // Global Variables
 
 const (
+	LockSuffix   string = "lock"
 	LogSuffix    string = "log"
 	ConfigSuffix string = "cfg"
 )
@@ -31,12 +32,15 @@ var OldLogFileName    string
 var LogConfigFileName string
 var ConfigFileName    string
 var OldConfigFileName string
+var LockFileName      string
 
 var CurrentPID        string
 
 var DirDelimiter      string
 var OratabDelimiter   string
 var ExecutableSuffix  string
+
+var LogMoved          bool   = true
 
 var Database          string
 
@@ -122,11 +126,12 @@ func setLog () {
 	//
 	// Setting up logging names
 	//
-	LogDir = strings.Join([]string{BaseDir, "logs"}, DirDelimiter)
+	LogDir = filepath.Join(BaseDir, "logs")
 
 	logger.Tracef("Default log directory set to %s", LogDir)
 	
-	LogFileName = strings.Join([]string{LogDir, DirDelimiter, BaseName, "_", CurrentPID, ".", LogSuffix},"")
+	LogFileName = strings.Join([]string{BaseName, "_", CurrentPID, ".", LogSuffix},"")
+	LogFileName = filepath.Join(LogDir, LogFileName)
 
 	logger.Tracef("Default Log file set to %s",LogFileName)
 }
@@ -135,20 +140,30 @@ func setConfig () {
 	//
 	// Setting up config names
 	//
-	ConfigDir = strings.Join([]string{BaseDir, "config"}, DirDelimiter)
+	ConfigDir = filepath.Join(BaseDir, "config")
 
 	logger.Tracef("Config directory set to %s", ConfigDir)
 	
-	LogConfigFileName = strings.Join([]string{ConfigDir, DirDelimiter, BaseName, ".", LogSuffix, ConfigSuffix},"")
+	LogConfigFileName = strings.Join([]string{BaseName, ".", LogSuffix, ConfigSuffix}, "")
+	LogConfigFileName = filepath.Join(ConfigDir, LogConfigFileName)
 
 	logger.Tracef("Log config file set to %s",LogConfigFileName)
 
-	ConfigFileName = strings.Join([]string{ConfigDir, DirDelimiter, BaseName, ".", ConfigSuffix},"")
+	ConfigFileName = strings.Join([]string{BaseName, ConfigSuffix}, ".")
+	ConfigFileName = filepath.Join(ConfigDir, ConfigFileName)
 
 	logger.Tracef("Default config file set to %s",ConfigFileName)
 }
 
+func setLockFile () {
+	//
+	// Setting up generic lock name
+	//
+	LockFileName = strings.Join([]string{BaseName, LockSuffix}, ".")
+	LockFileName = filepath.Join(LogDir, LockFileName)
 
+	logger.Tracef("Default lock file set to %s",LockFileName)
+}
 
 // Global Functions
 
@@ -164,9 +179,11 @@ func Initialize() {
 	setLog()
 
 	setConfig()
+
+	setLockFile()
 }
 
-func SwitchConfigFile (configFile string) {
+func SetConfigFile (configFile string) {
 	logger.Info("Switching config file to new value ...")
 
 	OldConfigFileName = ConfigFileName
@@ -178,7 +195,7 @@ func SwitchConfigFile (configFile string) {
 	logger.Info("Process complete")
 }
 
-func SwitchLogDir (logDir string) {
+func SetLogDir (logDir string) {
 	logger.Info("Switching log directory to new value ...")
 
 	OldLogDir = LogDir
@@ -190,19 +207,25 @@ func SwitchLogDir (logDir string) {
 	logFile := filepath.Base(LogFileName)
 	logger.Tracef("Set log file component to %s", logFile)
 	
-	SwitchLogFile(strings.Join([]string{LogDir, logFile}, DirDelimiter))
+	SetLogFileName(strings.Join([]string{LogDir, logFile}, DirDelimiter))
 
 	logger.Info("Process complete")
 }
 
-func SwitchLogFile (logFile string) {
+func SetLogFileName (logFile string) {
 	logger.Info("Switching log file to new value ...")
 
-	OldLogFileName = LogFileName
-        logger.Tracef("Set old log file name to %s", OldLogFileName)
+	if LogMoved {
+		OldLogFileName = LogFileName
+		logger.Tracef("Set old log file name to %s", OldLogFileName)
+	} else {
+		logger.Tracef("Old log file not yet moved")
+	}
 
 	LogFileName = logFile
 	logger.Tracef("Set new log file name to %s", LogFileName)
+
+	LogMoved = false;
 
 	logger.Info("Process complete")
 }
@@ -290,6 +313,15 @@ func SetErrorEmail (email string) {
 	for _ , emailAddress := range ErrorEmails {
 		logger.Infof("Error E-mail set to %s", emailAddress)
 	}
+
+	logger.Info("Process complete")
+}
+
+func SetLogMoved ( logMoved bool ) {
+	logger.Info("Setting LogMoved bool ...")
+
+	LogMoved = logMoved
+	logger.Debugf("LogMoved set to %t", LogMoved)
 
 	logger.Info("Process complete")
 }

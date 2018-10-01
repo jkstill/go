@@ -9,6 +9,7 @@ import "regexp"
 import "strings"
 import "strconv"
 import "syscall"
+import "time"
 
 // Local imports
 
@@ -158,4 +159,64 @@ func LookupFile(searchFileName string, searchString string, searchIndex int, ret
 
 	logger.Debug("Nothing found to return.  Returning empty string")
 	return ""
+}
+
+func LockFile ( lockFileName string , waitTime int ) {
+	logger.Info("Locking file")
+
+	lockerFileName := strings.Join( []string{ lockFileName , "locker" }, ".")
+	logger.Debugf("Locker file name -> %s", lockerFileName)
+
+	timeWaited := 0
+	logger.Trace("Initialized variable timeWaited to zero")
+	
+	for {
+		// Try opening file in exclusive mode i.e. can not open if already created
+
+		logger.Debug("Attempting to create locker file ...")
+
+		if lockFile , err := os.OpenFile(lockerFileName, os.O_CREATE | os.O_WRONLY | os.O_EXCL, 0600 ); err == nil {
+			logger.Debug("File created successfully")
+
+			// Immediately close the file
+
+			lockFile.Close();
+			logger.Tracef("File %s closed", lockerFileName)
+		} else {
+			logger.Info("File locked. Waiting 60 seconds ...")
+
+			timeWaited++
+
+			logger.Tracef("timeWaited incremented to %d. Checking to see if we should time out ...", timeWaited)
+
+			if timeWaited > waitTime {
+				logger.Debugf("Time waited is %d mins, waitTime is %d mins", timeWaited, waitTime)
+				logger.Errorf("Unable lock file %s", lockFileName)
+			} else {
+				logger.Debugf("Time waited is %d mins, waitTime is %d mins", timeWaited, waitTime)
+			}
+		
+			logger.Trace("Sleeping ...")
+			time.Sleep(60 * time.Second)
+		}
+	}
+
+	logger.Infof("File %s locked", lockFileName)
+
+	logger.Info("Process complete")
+}
+
+func UnLockFile ( lockFileName string ) {
+	logger.Info("Locking file")
+
+	lockerFileName := strings.Join( []string{ lockFileName , "locker" }, ".")
+	logger.Debugf("Locker file name -> %s", lockerFileName)
+
+	if err := os.Remove(lockerFileName); err != nil {
+		logger.Errorf("Unable to remove locker file %s", lockerFileName)
+	}
+
+	logger.Infof("File %s unlocked", lockFileName)
+
+	logger.Info("Process complete")
 }

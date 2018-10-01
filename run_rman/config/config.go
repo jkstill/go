@@ -5,6 +5,7 @@ package config
 import "bufio"
 import "flag"
 import "os"
+import "path/filepath"
 import "strings"
 
 // local imports
@@ -34,6 +35,7 @@ var ConfigValues = map[string]string {
 var ConfigFileValues      map[string]string
 
 var RMANScript        string
+var RMANScriptBase    string
 
 // Global Functions
 
@@ -158,6 +160,14 @@ func SetRMANScript () {
 	} else {
 		logger.Errorf("Unable to find RMAN script %s", RMANScript)
 	}
+
+	// Derive the base name for the script
+
+	logger.Trace("Splitting RMAN file name using .")
+	rmanBaseName := strings.SplitN(filepath.Base(RMANScript),".",2)
+	
+	RMANScriptBase = rmanBaseName[0]
+	logger.Debugf("RMAN Script Base variable set to %s",RMANScriptBase)
 
 	logger.Info("Process complete")
 }

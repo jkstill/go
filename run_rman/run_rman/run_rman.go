@@ -34,6 +34,10 @@ func main() {
 
 	general.SetEnvironment(setup.Database)
 
+	general.RenameLog()
+
+	general.LockProcess()
+
 	general.Cleanup()
 
 	logger.Info("Process complete")

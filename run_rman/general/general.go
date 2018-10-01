@@ -2,9 +2,12 @@ package general
 
 // Standard imports
 
+import "bufio"
 import "flag"
 import "os"
 import "strings"
+import "strconv"
+import "time"
 
 // Local imports
 
@@ -12,6 +15,8 @@ import "github.com/daviesluke/logger"
 import "github.com/daviesluke/setup"
 import "github.com/daviesluke/utils"
 import "github.com/daviesluke/run_rman/config"
+import "github.com/daviesluke/mitchellh/go-ps"
+
 
 // local Variables
 
@@ -25,6 +30,14 @@ var lock       = flag.String("lock"       , "", "Lock name")
 var logDir     = flag.String("log"        , "", "Directory for logs")
 var resource   = flag.String("resource"   , "", "Resource name")
 
+// Global Variables
+
+var Database          string
+
+var SuccessEmails     []string
+var ErrorEmails       []string
+
+var Resources         map[string]int
 
 // Local functions
 
@@ -42,6 +55,7 @@ func init() {
 	flag.StringVar(resource  , "r", "", "Resource name")
 }
 
+
 // Global functions
 
 func ValidateFlags () {
@@ -58,18 +72,17 @@ func ValidateFlags () {
 
 		if flagParam.Name == "config" || flagParam.Name == "c" {
 			logger.Infof("Config file switched from default to named file -> %s", *configFile)
-			setup.SwitchConfigFile(*configFile)
+			setup.SetConfigFile(*configFile)
 			logger.Tracef("Config file now set to %s", setup.ConfigFileName)
-		} else if flagParam.Name == "log" || flagParam.Name == "l" {
+		} else if flagParam.Name == "log" || flagParam.Name == "L" {
 			logger.Infof("Switching log directory to new directory -> %s", *logDir)
-			setup.SwitchLogDir(*logDir)
-			//logger.SwitchLog()
+			setup.SetLogDir(*logDir)
 			logger.Tracef("Log file now set to %s", setup.LogFileName)
 		} else if flagParam.Name == "erroremail" || flagParam.Name == "e" {
 			logger.Info("Validating error e-mail addresses ...")
 			if utils.CheckRegEx(*errorEmail, emailRegEx) {
 				logger.Debugf("Error E-mail - %s validated", *errorEmail)
-				setup.SetErrorEmail(*errorEmail)
+				SetErrorEmail(*errorEmail)
 			} else {
 				logger.Errorf("Invalid error e-mail address list - %s", *errorEmail)
 			}
@@ -77,7 +90,7 @@ func ValidateFlags () {
 			logger.Info("Validating e-mail addresses ...")
 			if utils.CheckRegEx(*email, emailRegEx) {
 				logger.Debugf("E-mail - %s validated", *email)
-				setup.SetEmail(*email)
+				SetEmail(*email)
 			} else {
 				logger.Errorf("Invalid e-mail address list - %s", *email)
 			}
@@ -86,12 +99,12 @@ func ValidateFlags () {
 			resourceRegEx := "^([a-zA-Z0-9_]+=[0-9]+)+([:;,.][a-zA-Z0-9_]+=[0-9]+)*$"
 			if utils.CheckRegEx(*resource, resourceRegEx) {
 				logger.Debugf("Resources - %s - validated", *resource)
-				setup.SetResource(*resource)
+				SetResource(*resource)
 			} else {
 				logger.Errorf("Invalid resources - %s", *resource)
 			}
 		} else if flagParam.Name == "db" || flagParam.Name == "d" {
-			setup.SetDatabase(*database)
+			SetDatabase(*database)
 		}
 	}
 
@@ -225,6 +238,184 @@ func SetEnvironment ( database string ) {
 
 	logger.Info("Process complete")
 }
+
+func SetDatabase (database string) {
+	logger.Info("Setting database name ...")
+
+	Database = database
+
+	logger.Infof("Database name set to %s", Database)
+}
+
+func SetResource (resource string) {
+	logger.Info("Setting resources ...")
+
+	//
+	// May be multiple resources so need to split them up
+	//
+
+	Resources = make(map[string]int)
+	logger.Trace("Initialized Resources map")
+
+	logger.Debug("Checking for correct delimiter - can be . , ; or :")
+
+	delimiterList     := []string { "." , "," , ";" , ":" }
+	resourceDelimiter := ":"
+
+	for _, delimiter := range delimiterList {
+		logger.Tracef("Checking for delimiter %s", delimiter)
+
+		if strings.Contains(resource,delimiter) {
+			resourceDelimiter = delimiter
+			logger.Debugf("Delimiter set to %s", delimiter)
+			break
+		}
+	}
+
+	for _, resourceList := range strings.Split(resource, resourceDelimiter) {
+		logger.Tracef("Resource list element is %s. Splitting into name and value ...", resourceList)
+		resourceElement := strings.SplitN(resourceList,"=",2)
+		logger.Tracef("Resource Name = %s , Value %s", resourceElement[0], resourceElement[1])
+		Resources[resourceElement[0]] , _  = strconv.Atoi(resourceElement[1])
+		logger.Trace("Resource set")
+	}
+
+	logger.Trace("Resources set")
+
+	for resourceName, resourceValue := range Resources {
+		logger.Infof("Resource %s set to %d", resourceName, resourceValue)
+	}
+
+	logger.Info("Process complete")
+}
+
+func SetEmail (email string) {
+	logger.Info("Setting e-mail for all outcomes ...")
+
+	//
+	// May be multiple e-mails so need to split them up
+	//
+	
+	SuccessEmails = strings.Split(email,";")
+	logger.Trace("SuccessEmails string array set")
+
+	for _ , emailAddress := range SuccessEmails {
+		logger.Infof("Success E-mail set to %s", emailAddress)
+	}
+
+	if len(ErrorEmails) == 0 {
+		logger.Trace("Error Email not yet set")
+		SetErrorEmail(email)
+	} else {
+		logger.Trace("Error E-mail already set")
+	}
+
+	logger.Info("Process complete")
+}
+
+func SetErrorEmail (email string) {
+	logger.Info("Setting e-mail for errors ...")
+
+	ErrorEmails = strings.Split(email,";")
+	logger.Trace("ErrorEmails string array set")
+
+	for _ , emailAddress := range ErrorEmails {
+		logger.Infof("Error E-mail set to %s", emailAddress)
+	}
+
+	logger.Info("Process complete")
+}
+
+func RenameLog () {
+	logger.Info("Renaming log ...")
+
+	logger.Trace("Getting current date and time ...")
+
+	t := time.Now()
+
+	tFormat := t.Format("20060201150405")
+	logger.Debugf("Time set to %s", tFormat)
+
+	newLogFileName := strings.Join( []string{ setup.LogDir, setup.DirDelimiter, setup.BaseName, "_", setup.Database, "_", config.RMANScriptBase, "_", tFormat, ".", setup.LogSuffix}, "" )
+	logger.Infof("Log file set to %s", newLogFileName)
+
+	setup.SetLogFileName(newLogFileName)
+
+	logger.CopyLog(setup.OldLogFileName, setup.LogFileName)
+
+	setup.SetLogMoved(true)
+
+	logger.Info("Process complete")
+}
+
+func LockProcess () {
+	logger.Info("Locking process ...")
+
+	// Reset the number of minutes to wait before locking process
+
+	if *lock != "" {
+		config.SetConfig(Database, "CheckLockMins")
+
+		checkLockMins, _ := strconv.Atoi(config.ConfigValues["CheckLockMins"])
+
+		LockFile(setup.LockFileName, *lock, checkLockMins)
+	} else {
+		logger.Info("No lock string provided. No locking necessary")
+	}
+
+	logger.Info("Process complete")
+}
+
+func CleanLockFile(lockFile *os.File) {
+	logger.Info("Cleaning lock file of dead processes ...")
+
+	lockScanner := bufio.NewScanner(lockFile)
+
+	for lockScanner.Scan() {
+		variableTokens := strings.SplitN(lockScanner.Text(), " ", 2)
+
+		lockPID, _  := strconv.Atoi(variableTokens[0])
+		LockName := variableTokens[1]
+
+		logger.Debugf("Found PID %d for lock %s", lockPID, LockName)
+
+		if checkProcess , err := ps.FindProcess(lockPID); checkProcess != nil && err == nil {
+			logger.Infof("PID %d found, Process is running %s", lockPID, checkProcess.Executable())
+		} else {
+			logger.Infof("PID %d NOT found", lockPID)
+		}
+	}
+
+	logger.Info("Process complete")
+}
+
+func LockFile( lockFileName string , lockName string , timeOutMins int ) {
+	var lockFile *os.File
+	var err      error
+
+	logger.Info("Locking process ...")
+
+	logger.Debugf("Lock file -> %s", lockFileName)
+	logger.Debugf("Lock Name -> %s", lockName)
+	logger.Debugf("Time Out  -> %d mins", timeOutMins)
+
+	// First check to see if file exists
+
+	logger.Tracef("Attempting to open the file %s ...", lockFileName)
+
+	if lockFile , err = os.Open(lockFileName); err == nil {
+		defer lockFile.Close()
+
+		logger.Infof("File %s found. Checking contents ...", lockFileName)
+
+		CleanLockFile(lockFile)
+	} else {
+		//AddLockEntry(lockFile, setup.CurrentPID, lockName)
+	}
+		
+	logger.Info("Process complete")
+}
+	
 
 func Cleanup() {
 	logger.Infof("Running cleanup ...")

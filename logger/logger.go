@@ -30,37 +30,54 @@ func getFunctionName() string {
         return callingFuncName
 }
 
-func copyFileContents( oldLogFileName string , newLogFileName string ) {
-	Trace("Copying file contents ...")
+func setConfFile (logConfigFileName string) {
+	//
+	// Check for any Logging Configuration 
+	//
+	Debugf("Checking file %s ...", logConfigFileName)
 
-	oldLogFile, err := os.Open(oldLogFileName)
-	if err != nil {
-		Errorf("Unable to open read file %s for copying", oldLogFileName)
+	if _, err := os.Stat(logConfigFileName); err == nil {
+		Debugf("File %s exists", logConfigFileName)
+		Tracef("Setting the config file to %s ...", logConfigFileName)
+		rlog.SetConfFile(logConfigFileName)
+		Debugf("Config file set to %s", logConfigFileName)
+	} else {
+		Debugf("File %s does not exist", logConfigFileName)
 	}
-
-	defer oldLogFile.Close()
-
-	newLogFile, err := os.OpenFile(newLogFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil {
-		Errorf("Unable to open write file %s for copying", newLogFileName)
-	}
-
-	defer newLogFile.Close()
-
-	// Now copy the contents
-
-	if _, err := io.Copy(newLogFile, oldLogFile); err != nil {
-		Errorf("Unable to copy file %s to %s", oldLogFileName, newLogFileName)
-	}
-
-	// Flush anything out to disk 
-
-	newLogFile.Sync()
-	
-	// Deferred files to close at end 
-
-	Trace("Process complete")
 }
+
+func copyFileContents( oldFileName string , newFileName string ) {
+        Trace("Copying file contents ...")
+
+        oldFile, err := os.Open(oldFileName)
+        if err != nil {
+                Errorf("Unable to open read file %s for copying", oldFileName)
+        }
+
+        defer oldFile.Close()
+
+        newFile, err := os.OpenFile(newFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+        if err != nil {
+                Errorf("Unable to open write file %s for copying", newFileName)
+        }
+
+        defer newFile.Close()
+
+        // Now copy the contents
+
+        if _, err := io.Copy(newFile, oldFile); err != nil {
+                Errorf("Unable to copy file %s to %s", oldFileName, newFileName)
+        }
+
+        // Flush anything out to disk
+
+        newFile.Sync()
+
+        // Deferred files to close at end
+
+        Trace("Process complete")
+}
+
 
 // Global Functions
 
@@ -266,22 +283,10 @@ func Initialize(logDir string, logFileName string, logConfigFileName string) {
 	Trace("Environment updated")
 	Debugf("Log file %s should now be open", logFileName)
 
-	//
-	// Check for any Logging Configuration 
-	//
-	Debugf("Checking file %s ...", logConfigFileName)
-
-	if _, err := os.Stat(logConfigFileName); err == nil {
-		Debugf("File %s exists", logConfigFileName)
-		Tracef("Setting the config file to %s ...", logConfigFileName)
-		rlog.SetConfFile(logConfigFileName)
-		Debugf("Config file set to %s", logConfigFileName)
-	} else {
-		Debugf("File %s does not exist", logConfigFileName)
-	}
+	setConfFile(logConfigFileName)
 }
 
-func CopyLog( oldLogFileName string , newLogFileName string ) {
+func CopyLog(oldLogFileName string , newLogFileName string, logConfigFileName string ) {
 	Infof("Copying log %s to %s ...", oldLogFileName, newLogFileName)
 
 	// Check the newLogFileName does not already exist
@@ -312,6 +317,7 @@ func CopyLog( oldLogFileName string , newLogFileName string ) {
 	rlog.UpdateEnv()
 	Trace("Turned on logging")
 
+	setConfFile(logConfigFileName)
+
 	Info("Process complete")
 }
-

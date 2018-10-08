@@ -2,7 +2,6 @@ package general
 
 // Standard imports
 
-import "bufio"
 import "flag"
 import "os"
 import "strings"
@@ -15,7 +14,7 @@ import "github.com/daviesluke/logger"
 import "github.com/daviesluke/setup"
 import "github.com/daviesluke/utils"
 import "github.com/daviesluke/run_rman/config"
-import "github.com/daviesluke/mitchellh/go-ps"
+import "github.com/daviesluke/run_rman/locker"
 
 
 // local Variables
@@ -32,7 +31,7 @@ var resource   = flag.String("resource"   , "", "Resource name")
 
 // Global Variables
 
-var Database          string
+var LockName          string
 
 var SuccessEmails     []string
 var ErrorEmails       []string
@@ -104,7 +103,9 @@ func ValidateFlags () {
 				logger.Errorf("Invalid resources - %s", *resource)
 			}
 		} else if flagParam.Name == "db" || flagParam.Name == "d" {
-			SetDatabase(*database)
+			setup.SetDatabase(*database)
+		} else if flagParam.Name == "lock" || flagParam.Name == "l" {
+			SetLock(*lock)
 		}
 	}
 
@@ -239,12 +240,12 @@ func SetEnvironment ( database string ) {
 	logger.Info("Process complete")
 }
 
-func SetDatabase (database string) {
-	logger.Info("Setting database name ...")
+func SetLock (lock string) {
+	logger.Info("Setting lock name ...")
 
-	Database = database
+	LockName = lock
 
-	logger.Infof("Database name set to %s", Database)
+	logger.Infof("Lock name set to %s", LockName)
 }
 
 func SetResource (resource string) {
@@ -341,84 +342,17 @@ func RenameLog () {
 
 	setup.SetLogFileName(newLogFileName)
 
-	logger.CopyLog(setup.OldLogFileName, setup.LogFileName)
+	logger.CopyLog(setup.OldLogFileName, setup.LogFileName, setup.LogConfigFileName)
 
 	setup.SetLogMoved(true)
 
 	logger.Info("Process complete")
 }
 
-func LockProcess () {
-	logger.Info("Locking process ...")
-
-	// Reset the number of minutes to wait before locking process
-
-	if *lock != "" {
-		config.SetConfig(Database, "CheckLockMins")
-
-		checkLockMins, _ := strconv.Atoi(config.ConfigValues["CheckLockMins"])
-
-		LockFile(setup.LockFileName, *lock, checkLockMins)
-	} else {
-		logger.Info("No lock string provided. No locking necessary")
-	}
-
-	logger.Info("Process complete")
-}
-
-func CleanLockFile(lockFile *os.File) {
-	logger.Info("Cleaning lock file of dead processes ...")
-
-	lockScanner := bufio.NewScanner(lockFile)
-
-	for lockScanner.Scan() {
-		variableTokens := strings.SplitN(lockScanner.Text(), " ", 2)
-
-		lockPID, _  := strconv.Atoi(variableTokens[0])
-		LockName := variableTokens[1]
-
-		logger.Debugf("Found PID %d for lock %s", lockPID, LockName)
-
-		if checkProcess , err := ps.FindProcess(lockPID); checkProcess != nil && err == nil {
-			logger.Infof("PID %d found, Process is running %s", lockPID, checkProcess.Executable())
-		} else {
-			logger.Infof("PID %d NOT found", lockPID)
-		}
-	}
-
-	logger.Info("Process complete")
-}
-
-func LockFile( lockFileName string , lockName string , timeOutMins int ) {
-	var lockFile *os.File
-	var err      error
-
-	logger.Info("Locking process ...")
-
-	logger.Debugf("Lock file -> %s", lockFileName)
-	logger.Debugf("Lock Name -> %s", lockName)
-	logger.Debugf("Time Out  -> %d mins", timeOutMins)
-
-	// First check to see if file exists
-
-	logger.Tracef("Attempting to open the file %s ...", lockFileName)
-
-	if lockFile , err = os.Open(lockFileName); err == nil {
-		defer lockFile.Close()
-
-		logger.Infof("File %s found. Checking contents ...", lockFileName)
-
-		CleanLockFile(lockFile)
-	} else {
-		//AddLockEntry(lockFile, setup.CurrentPID, lockName)
-	}
-		
-	logger.Info("Process complete")
-}
-	
-
 func Cleanup() {
 	logger.Infof("Running cleanup ...")
+
+	locker.RemoveLockEntry(setup.LockFileName,setup.CurrentPID)
 
 	logger.Infof("Process complete")
 }

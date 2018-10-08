@@ -10,6 +10,7 @@ import "github.com/daviesluke/utils"
 
 import "github.com/daviesluke/run_rman/config"
 import "github.com/daviesluke/run_rman/general"
+import "github.com/daviesluke/run_rman/locker"
 
 // Local Variables
 
@@ -36,7 +37,7 @@ func main() {
 
 	general.RenameLog()
 
-	general.LockProcess()
+	locker.LockProcess(general.LockName,setup.Database)
 
 	general.Cleanup()
 

@@ -3,13 +3,13 @@ package utils
 // Standard imports
 
 import "bufio"
+import "io"
 import "os"
 import "os/signal"
 import "regexp"
 import "strings"
 import "strconv"
 import "syscall"
-import "time"
 
 // Local imports
 
@@ -161,62 +161,37 @@ func LookupFile(searchFileName string, searchString string, searchIndex int, ret
 	return ""
 }
 
-func LockFile ( lockFileName string , waitTime int ) {
-	logger.Info("Locking file")
+func CopyFileContents( oldFileName string , newFileName string ) {
+        logger.Info("Copying file contents ...")
 
-	lockerFileName := strings.Join( []string{ lockFileName , "locker" }, ".")
-	logger.Debugf("Locker file name -> %s", lockerFileName)
+	logger.Infof("Copying from %s to %s", oldFileName, newFileName)
 
-	timeWaited := 0
-	logger.Trace("Initialized variable timeWaited to zero")
-	
-	for {
-		// Try opening file in exclusive mode i.e. can not open if already created
+        oldFile, err := os.Open(oldFileName)
+        if err != nil {
+               logger.Errorf("Unable to open read file %s for copying", oldFileName)
+        }
 
-		logger.Debug("Attempting to create locker file ...")
+        defer oldFile.Close()
 
-		if lockFile , err := os.OpenFile(lockerFileName, os.O_CREATE | os.O_WRONLY | os.O_EXCL, 0600 ); err == nil {
-			logger.Debug("File created successfully")
+        newFile, err := os.OpenFile(newFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+        if err != nil {
+                logger.Errorf("Unable to open write file %s for copying", newFileName)
+        }
 
-			// Immediately close the file
+        defer newFile.Close()
 
-			lockFile.Close();
-			logger.Tracef("File %s closed", lockerFileName)
-		} else {
-			logger.Info("File locked. Waiting 60 seconds ...")
+        // Now copy the contents
 
-			timeWaited++
+        if _, err := io.Copy(newFile, oldFile); err != nil {
+                logger.Errorf("Unable to copy file %s to %s", oldFileName, newFileName)
+        }
 
-			logger.Tracef("timeWaited incremented to %d. Checking to see if we should time out ...", timeWaited)
+        // Flush anything out to disk
 
-			if timeWaited > waitTime {
-				logger.Debugf("Time waited is %d mins, waitTime is %d mins", timeWaited, waitTime)
-				logger.Errorf("Unable lock file %s", lockFileName)
-			} else {
-				logger.Debugf("Time waited is %d mins, waitTime is %d mins", timeWaited, waitTime)
-			}
-		
-			logger.Trace("Sleeping ...")
-			time.Sleep(60 * time.Second)
-		}
-	}
+        newFile.Sync()
 
-	logger.Infof("File %s locked", lockFileName)
+        // Deferred files to close at end
 
-	logger.Info("Process complete")
+        logger.Info("Process complete")
 }
 
-func UnLockFile ( lockFileName string ) {
-	logger.Info("Locking file")
-
-	lockerFileName := strings.Join( []string{ lockFileName , "locker" }, ".")
-	logger.Debugf("Locker file name -> %s", lockerFileName)
-
-	if err := os.Remove(lockerFileName); err != nil {
-		logger.Errorf("Unable to remove locker file %s", lockerFileName)
-	}
-
-	logger.Infof("File %s unlocked", lockFileName)
-
-	logger.Info("Process complete")
-}

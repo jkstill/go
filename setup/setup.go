@@ -49,6 +49,8 @@ var ErrorEmails       []string
 
 var Resources         map[string]int
 
+var LukeTest int
+
 // Local functions
 
 func setPID () {

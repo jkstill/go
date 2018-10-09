@@ -101,7 +101,7 @@ func TrapSignal(runFunction fn) {
 	logger.Infof("Process complete")
 }
 
-func LookupFile(searchFileName string, searchString string, searchIndex int, returnIndex int, delimiter string) string {
+func LookupFile(searchFileName string, searchString string, searchIndex int, returnIndex int, delimiter string, returnCounter int) string {
 	logger.Info("Looking up string file")
 	logger.Infof("Searching for %s in position %d in file %s demilited by %s ...", searchString, searchIndex, searchFileName, delimiter)
 
@@ -122,6 +122,9 @@ func LookupFile(searchFileName string, searchString string, searchIndex int, ret
 
 	lineNo := 0
 	logger.Tracef("Set up variable LineNo and set to %d", lineNo)
+
+	findCounter  := 1
+	returnString := ""
 
 	for searchScanner.Scan() {
 		lineNo++
@@ -146,19 +149,19 @@ func LookupFile(searchFileName string, searchString string, searchIndex int, ret
 		}
 
 		if strings.TrimSpace(variableTokens[searchIndex-1]) == searchString {
-			if strings.TrimSpace(variableTokens[returnIndex-1]) != "" {
-				logger.Infof("Search criteria found.  Returning entry %d => %s",  returnIndex, strings.TrimSpace(variableTokens[returnIndex-1]))
-				return strings.TrimSpace(variableTokens[returnIndex-1])
+			if findCounter == returnCounter {
+				returnString = strings.TrimSpace(variableTokens[returnIndex-1])
+				logger.Infof("Search criteria found.  Returning entry %d => %s",  returnIndex, returnString)
+				break
 			} else {
-				logger.Debugf("NULL string in position %d in file %s for search string %s", returnIndex, searchFileName, searchString)
+				findCounter++
 			}
 		} else {
 			logger.Tracef("String %s does not match search %s", strings.TrimSpace(variableTokens[searchIndex-1]), searchString)
 		}
 	}
 
-	logger.Debug("Nothing found to return.  Returning empty string")
-	return ""
+	return returnString
 }
 
 func CopyFileContents( oldFileName string , newFileName string ) {

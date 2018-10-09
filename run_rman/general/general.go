@@ -4,6 +4,7 @@ package general
 
 import "flag"
 import "os"
+import "path/filepath"
 import "strings"
 import "strconv"
 import "time"
@@ -189,7 +190,7 @@ func SetEnvironment ( database string ) {
 		// Check file exists
 
 		if _, err := os.Stat(envFile); err == nil {
-			oracleHome = utils.LookupFile(envFile,setup.Database,1,2,setup.OratabDelimiter)
+			oracleHome = utils.LookupFile(envFile,setup.Database,1,2,setup.OratabDelimiter,1)
 
 			if oracleHome != "" {
 				logger.Debug("Found entry in file. Breaking loop ...")
@@ -222,8 +223,8 @@ func SetEnvironment ( database string ) {
 	commandSQLPLUS := strings.Join( [] string{ "sqlplus", setup.ExecutableSuffix }, "" )
 	commandRMAN    := strings.Join( [] string{ "rman"   , setup.ExecutableSuffix }, "" )
 
-	commandSQLPLUS = strings.Join( []string{ oracleHome, "bin", commandSQLPLUS}, setup.DirDelimiter )
-	commandRMAN    = strings.Join( []string{ oracleHome, "bin", commandRMAN}   , setup.DirDelimiter )
+	commandSQLPLUS = filepath.Join(  oracleHome, "bin", commandSQLPLUS )
+	commandRMAN    = filepath.Join(  oracleHome, "bin", commandRMAN )
 
 	logger.Tracef("Checking for SQLPLUS executable - %s", commandSQLPLUS)
 	if _, err := os.Stat(commandSQLPLUS); err != nil {
@@ -231,9 +232,9 @@ func SetEnvironment ( database string ) {
 	}
 
 	logger.Tracef("Checking for RMAN executable - %s", commandRMAN)
-//	if _, err := os.Stat(commandRMAN); err != nil {
-//		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandRMAN);
-	//}
+	if _, err := os.Stat(commandRMAN); err != nil {
+		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandRMAN);
+	}
 
 	logger.Infof("ORACLE_HOME set to %s", oracleHome)
 
@@ -337,7 +338,8 @@ func RenameLog () {
 	tFormat := t.Format("20060201150405")
 	logger.Debugf("Time set to %s", tFormat)
 
-	newLogFileName := strings.Join( []string{ setup.LogDir, setup.DirDelimiter, setup.BaseName, "_", setup.Database, "_", config.RMANScriptBase, "_", tFormat, ".", setup.LogSuffix}, "" )
+	newLogFileName := strings.Join( []string{ setup.BaseName, "_", setup.Database, "_", config.RMANScriptBase, "_", tFormat, ".", setup.LogSuffix}, "" )
+	newLogFileName = filepath.Join( setup.LogDir, newLogFileName )
 	logger.Infof("Log file set to %s", newLogFileName)
 
 	setup.SetLogFileName(newLogFileName)

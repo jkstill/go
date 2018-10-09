@@ -15,30 +15,40 @@ import "github.com/daviesluke/logger"
 // Global Variables
 
 const (
-	LockSuffix   string = "lock"
-	LogSuffix    string = "log"
-	ConfigSuffix string = "cfg"
+	LockSuffix      string = "lock"
+	LogSuffix       string = "log"
+	ConfigSuffix    string = "cfg"
+	ResourceSuffix  string = "resources"
 )
 
-var BaseDir           string
-var TmpDir            string
-var LogDir            string
-var OldLogDir         string
-var ConfigDir         string
+// Directories
 
-var BaseName          string
-var LogFileName       string
-var OldLogFileName    string
-var LogConfigFileName string
-var ConfigFileName    string
-var OldConfigFileName string
-var LockFileName      string
+var BaseDir                  string
+var TmpDir                   string
+var LogDir                   string
+var OldLogDir                string
+var ConfigDir                string
 
-var CurrentPID        string
+// Files
 
-var DirDelimiter      string
-var OratabDelimiter   string
-var ExecutableSuffix  string
+var BaseName                 string
+var LogFileName              string
+var OldLogFileName           string
+var LogConfigFileName        string
+var ConfigFileName           string
+var OldConfigFileName        string
+var LockFileName             string
+var ResourceFileName         string
+var ResourceUsageFileName    string
+var ResourceObtainedFileName string
+
+// Misc variables 
+
+var CurrentPID               string
+
+var DirDelimiter             string
+var OratabDelimiter          string
+var ExecutableSuffix         string
 
 var LogMoved          bool   = true
 
@@ -166,6 +176,20 @@ func setLockFile () {
 	logger.Tracef("Default lock file set to %s",LockFileName)
 }
 
+func setResourceFile () {
+	//
+	// Setting up resource file names
+	//
+
+	ResourceFileName         = strings.Join([]string{BaseName, ResourceSuffix}, ".")
+	ResourceFileName         = filepath.Join(ConfigDir, ResourceFileName)
+
+	ResourceUsageFileName    = strings.Join([]string{ResourceFileName, "used"}, ".")
+
+	ResourceObtainedFileName = strings.Join([]string{ResourceUsageFileName, CurrentPID}, ".")
+}
+
+
 // Global Functions
 
 func Initialize() {
@@ -182,6 +206,8 @@ func Initialize() {
 	setConfig()
 
 	setLockFile()
+
+	setResourceFile()
 }
 
 func SetConfigFile (configFile string) {
@@ -208,7 +234,7 @@ func SetLogDir (logDir string) {
 	logFile := filepath.Base(LogFileName)
 	logger.Tracef("Set log file component to %s", logFile)
 	
-	SetLogFileName(strings.Join([]string{LogDir, logFile}, DirDelimiter))
+	SetLogFileName(filepath.Join(LogDir, logFile ))
 
 	logger.Info("Process complete")
 }

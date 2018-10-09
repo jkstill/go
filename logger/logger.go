@@ -2,7 +2,6 @@ package logger
 
 // standard imports
 
-import "io"
 import "os"
 import "path/filepath"
 import "runtime"
@@ -44,38 +43,6 @@ func setConfFile (logConfigFileName string) {
 	} else {
 		Debugf("File %s does not exist", logConfigFileName)
 	}
-}
-
-func copyFileContents( oldFileName string , newFileName string ) {
-        Trace("Copying file contents ...")
-
-        oldFile, err := os.Open(oldFileName)
-        if err != nil {
-                Errorf("Unable to open read file %s for copying", oldFileName)
-        }
-
-        defer oldFile.Close()
-
-        newFile, err := os.OpenFile(newFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-        if err != nil {
-                Errorf("Unable to open write file %s for copying", newFileName)
-        }
-
-        defer newFile.Close()
-
-        // Now copy the contents
-
-        if _, err := io.Copy(newFile, oldFile); err != nil {
-                Errorf("Unable to copy file %s to %s", oldFileName, newFileName)
-        }
-
-        // Flush anything out to disk
-
-        newFile.Sync()
-
-        // Deferred files to close at end
-
-        Trace("Process complete")
 }
 
 
@@ -286,30 +253,23 @@ func Initialize(logDir string, logFileName string, logConfigFileName string) {
 	setConfFile(logConfigFileName)
 }
 
-func CopyLog(oldLogFileName string , newLogFileName string, logConfigFileName string ) {
-	Infof("Copying log %s to %s ...", oldLogFileName, newLogFileName)
+func RenameLog(oldLogFileName string , newLogFileName string, logConfigFileName string ) {
+	Infof("Renaming log %s to %s ...", oldLogFileName, newLogFileName)
 
 	// Check the newLogFileName does not already exist
 	if _, err := os.Stat(newLogFileName); err == nil {
 		Errorf("New log file %s exists with error %d.  Exiting ...", newLogFileName, err)
 	}
 
-	// Turn off output 
-	os.Unsetenv("RLOG_LOG_FILE")
-	rlog.UpdateEnv()
-	Trace("Turned off logging")
+	// Redirect output to stdout
 
-	// File should be closed - ready to copy
+	rlog.SetOutput(os.Stdout)
+	Trace("Redirected output to stderr")
 
-	copyFileContents( oldLogFileName, newLogFileName )
+	// File should be closed - ready to rename
 
-	// Remove old log 
-
-	Trace("Removing old log ...")
-
-	err := os.Remove(oldLogFileName)
-	if err != nil {
-		Errorf("Unable to remove old log %s", oldLogFileName)
+	if err := os.Rename(oldLogFileName, newLogFileName ); err != nil {
+		Errorf("Unable to rename the file - %s", err)
 	}
 
 	// Turn on output

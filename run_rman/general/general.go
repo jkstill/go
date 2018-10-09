@@ -231,9 +231,9 @@ func SetEnvironment ( database string ) {
 	}
 
 	logger.Tracef("Checking for RMAN executable - %s", commandRMAN)
-	if _, err := os.Stat(commandRMAN); err != nil {
-		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandRMAN);
-	}
+//	if _, err := os.Stat(commandRMAN); err != nil {
+//		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandRMAN);
+	//}
 
 	logger.Infof("ORACLE_HOME set to %s", oracleHome)
 
@@ -342,7 +342,7 @@ func RenameLog () {
 
 	setup.SetLogFileName(newLogFileName)
 
-	logger.CopyLog(setup.OldLogFileName, setup.LogFileName, setup.LogConfigFileName)
+	logger.RenameLog(setup.OldLogFileName, setup.LogFileName, setup.LogConfigFileName)
 
 	setup.SetLogMoved(true)
 

@@ -505,9 +505,20 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 		// Close the old logfile, since we are now writing to a new file
 		if currentLogFileName != "" {
 			currentLogFile.Close()
-			currentLogFileName = config.logFile
-			currentLogFile = newLogFile
 		}
+
+		/*
+		###########################################################################
+		##  Bug in original code - does not populate currentLogFileName after setting
+		##  Luke - 9th October 2018
+		##
+		##  Original code had next 2 lines within if clause
+		##
+		###########################################################################
+		*/
+
+		currentLogFileName = config.logFile
+		currentLogFile = newLogFile
 	}
 }
 

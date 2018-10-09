@@ -25,10 +25,13 @@ func LockFile (fileName string) {
 	loopCount := 0
 	logger.Trace("Initialize loop counter")
 
+	var fdlock *os.File
+	var err    error
+
         for {
 		// O_EXCL is the key - cannot create file if already there 
 
-                fdlock , err := os.OpenFile(lockName , os.O_CREATE | os.O_WRONLY | os.O_EXCL, 0600 )
+                fdlock , err = os.OpenFile(lockName , os.O_CREATE | os.O_WRONLY | os.O_EXCL, 0600 )
 
                 if err == nil {
                         logger.Debug("Lock successfully taken")
@@ -45,10 +48,12 @@ func LockFile (fileName string) {
 				logger.Errorf("Unable to lock file for %d loops.  Exiting ...", loopCount)
 			}
                 }
-
-		logger.Debug("Closing locker file")
-		fdlock.Close()
         }
+
+	// Closing the locker file
+
+	logger.Debug("Closing locker file")
+	fdlock.Close()
 
 	logger.Info("Process complete")
 }

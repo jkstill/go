@@ -222,7 +222,7 @@ func CheckProcess (pid int, processName string) (bool, bool) {
 			pidIsName = true
 		}
 	} else {
-		logger.Debugf("Pid %d not found running")
+		logger.Debugf("Pid %d not found running", pid)
 	}
 
 	return pidAlive, pidIsName

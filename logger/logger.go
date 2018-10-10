@@ -12,18 +12,26 @@ import "github.com/daviesluke/romana/rlog"
 
 // Local functions
 
+func trace2(message string) {
+	rlog.Trace(2, message)
+}
+
+func Tracef2(messageFormat string, message ...interface{}) {
+	rlog.Tracef(2, messageFormat, message...)
+}
+
 func getFunctionName() string {
         var callingFuncName string
 
-        Trace("Getting back trace info ...")
+        trace2("Getting back trace info ...")
         pc, _, _, ok := runtime.Caller(2)
         if ok {
                 callingFuncName = runtime.FuncForPC(pc).Name()
-                Tracef("Calling function name set to %s", callingFuncName)
+                tracef2("Calling function name set to %s", callingFuncName)
                 callingFuncName = filepath.Base(callingFuncName)
-                Tracef("Reduced function name to %s",callingFuncName)
+                tracef2("Reduced function name to %s",callingFuncName)
         } else {
-                Trace("Failed to get back trace info from runtime.Caller")
+                trace2("Failed to get back trace info from runtime.Caller")
         }
 
         return callingFuncName
@@ -37,7 +45,7 @@ func setConfFile (logConfigFileName string) {
 
 	if _, err := os.Stat(logConfigFileName); err == nil {
 		Debugf("File %s exists", logConfigFileName)
-		Tracef("Setting the config file to %s ...", logConfigFileName)
+		tracef2("Setting the config file to %s ...", logConfigFileName)
 		rlog.SetConfFile(logConfigFileName)
 		Debugf("Config file set to %s", logConfigFileName)
 	} else {
@@ -153,101 +161,101 @@ func Initialize(logDir string, logFileName string, logConfigFileName string) {
 	//
 	// Check level and if set to debug or less then enable extra logging info
 	//
-	Trace("Checking logging level ...")
+	trace2("Checking logging level ...")
 
 	if rlog.CheckLevel("DEBUG") {
-		Trace("Checking environment variable RLOG_LOG_LEVEL ...")
+		trace2("Checking environment variable RLOG_LOG_LEVEL ...")
 
 		envVar := os.Getenv("RLOG_LOG_LEVEL")
 		if envVar == "" {
-			Trace("Tracing on but not at debug log level. Setting RLOG_LOG_LEVEL to DEBUG ...")
+			trace2("Tracing on but not at debug log level. Setting RLOG_LOG_LEVEL to DEBUG ...")
 
 			os.Setenv("RLOG_LOG_LEVEL", "DEBUG")
 
-			Trace("RLOG_LOG_LEVEL set to DEBUG")
+			trace2("RLOG_LOG_LEVEL set to DEBUG")
 		} else {
-			Tracef("RLOG_LOG_LEVEL set to %s",envVar)
+			tracef2("RLOG_LOG_LEVEL set to %s",envVar)
 		}
 
-		Trace("Log Level set to DEBUG or lower")
-		Trace("Increasing logging information by setting RLOG_CALLER_INFO to yes")
+		trace2("Log Level set to DEBUG or lower")
+		trace2("Increasing logging information by setting RLOG_CALLER_INFO to yes")
 
 		os.Setenv("RLOG_CALLER_INFO", "yes")
 
-		Trace("RLOG_CALLER_INFO set to yes")
-		Trace("Updating the environment ...")
+		trace2("RLOG_CALLER_INFO set to yes")
+		trace2("Updating the environment ...")
 
 		rlog.UpdateEnv()
 
-		Trace("Environment updated")
+		trace2("Environment updated")
 	}
 
 	//
 	// Make sure directory exists
 	//
-	Tracef("Checking directory %s exists ...", logDir)
+	tracef2("Checking directory %s exists ...", logDir)
 
 	if logFileInfo, err := os.Stat(logDir); err == nil {
-		Tracef("File %s exists. Checking if it is a directory ...", logDir)
+		tracef2("File %s exists. Checking if it is a directory ...", logDir)
 
 		fileMode := logFileInfo.Mode()
 
 		if fileMode.IsDir() {
-			Tracef("Directory %s exists",logDir)
+			tracef2("Directory %s exists",logDir)
 		} else {
 			Errorf("File %s is not a directory.  Exiting with errors", logDir)
 		}
 	} else {
-		Tracef("Log directory %s does not exist", logDir)
-		Tracef("Making log directory %s ...", logDir)
+		tracef2("Log directory %s does not exist", logDir)
+		tracef2("Making log directory %s ...", logDir)
 		if err := os.MkdirAll(logDir,0755); err != nil {
 			Errorf("Unable to make log directory %s", logDir)
 		}
-		Tracef("Log directory %s created", logDir)
+		tracef2("Log directory %s created", logDir)
 	}
 		
 	//
 	// Try opening the file
 	//
-	Tracef("About to open file %s (modes append, write only, create, perm=0600) ...",logFileName)
+	tracef2("About to open file %s (modes append, write only, create, perm=0600) ...",logFileName)
 
 	LogFile, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 
 	if err != nil {
 		Errorf("Unable to open logfile %s", logFileName)
 	}
-	Tracef("Log file %s created",logFileName)
+	tracef2("Log file %s created",logFileName)
 
 	//
 	// Closing file - rlog will open it 
 	//
-	Tracef("Closing file %s ...",logFileName)
+	tracef2("Closing file %s ...",logFileName)
 	LogFile.Close()
-	Tracef("Closed file %s", logFileName)
+	tracef2("Closed file %s", logFileName)
 
 	//
 	// Set the output to the log file
 	//
-	Tracef("Setting the variable RLOG_LOG_FILE to %s ...",logFileName)
+	tracef2("Setting the variable RLOG_LOG_FILE to %s ...",logFileName)
 	os.Setenv("RLOG_LOG_FILE",logFileName)
 
 	// 
 	// Turn off logging to the stderr if trace is switched off
 	//
-	Trace("Getting environment variable RLOG_TRACE_LEVEL")
+	trace2("Getting environment variable RLOG_TRACE_LEVEL")
 	rlogTraceLevel := os.Getenv("RLOG_TRACE_LEVEL")
 
 	if rlogTraceLevel == "" {
-		Trace("RLOG_TRACE_LEVEL not set ...")
-		Trace("Setting the variable RLOG_LOG_STREAM to none")
+		trace2("RLOG_TRACE_LEVEL not set ...")
+		trace2("Setting the variable RLOG_LOG_STREAM to none")
 		os.Setenv("RLOG_LOG_STREAM","none")
 	} else {
-		Tracef("RLOG_TRACE_LEVEL set to %s. Leaving RLOG streaming on ...", rlogTraceLevel)
+		tracef2("RLOG_TRACE_LEVEL set to %s. Leaving RLOG streaming on ...", rlogTraceLevel)
 	}
 		
-	Trace("Updating environment")
+	trace2("Updating environment")
 	rlog.UpdateEnv()
-	Trace("Environment updated")
+	trace2("Environment updated")
 	Debugf("Log file %s should now be open", logFileName)
 
 	setConfFile(logConfigFileName)
@@ -264,7 +272,7 @@ func RenameLog(oldLogFileName string , newLogFileName string, logConfigFileName 
 	// Redirect output to stdout
 
 	rlog.SetOutput(os.Stdout)
-	Trace("Redirected output to stderr")
+	trace2("Redirected output to stderr")
 
 	// File should be closed - ready to rename
 
@@ -275,7 +283,7 @@ func RenameLog(oldLogFileName string , newLogFileName string, logConfigFileName 
 	// Turn on output
 	os.Setenv("RLOG_LOG_FILE",newLogFileName)
 	rlog.UpdateEnv()
-	Trace("Turned on logging")
+	trace2("Turned on logging")
 
 	setConfFile(logConfigFileName)
 

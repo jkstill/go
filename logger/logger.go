@@ -16,7 +16,7 @@ func trace2(message string) {
 	rlog.Trace(2, message)
 }
 
-func Tracef2(messageFormat string, message ...interface{}) {
+func tracef2(messageFormat string, message ...interface{}) {
 	rlog.Tracef(2, messageFormat, message...)
 }
 

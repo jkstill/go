@@ -11,6 +11,7 @@ import "regexp"
 import "strings"
 import "strconv"
 import "syscall"
+import "time"
 
 // Local imports
 
@@ -29,7 +30,7 @@ func CheckRegEx(checkString string, regEx string) bool {
 	logger.Tracef("Checking to see if string %s matches regex", checkString)
 	stringMatch, err := regexp.MatchString(regEx, checkString)
 	if err != nil {
-		logger.Errorf("Invalid regular exporession %s", regEx)
+		logger.Errorf("Invalid regular expression %s", regEx)
 	}
 
 	if stringMatch {
@@ -228,3 +229,60 @@ func CheckProcess (pid int, processName string) (bool, bool) {
 	return pidAlive, pidIsName
 }
 
+func FindFiles ( dirPath string, fileRegEx string, daysOld int ) []string {
+	logger.Debug("Finding files in directory ...")
+
+	var fileList []string
+
+	// Get time 
+
+	timeFormat := "2006-Jan-02 15:04:05"
+
+	checkTime := time.Now()
+
+	// Calculate modified date 
+	checkTime = checkTime.AddDate(0, 0, daysOld*-1) 
+
+	logger.Debugf("Check time set to %s",checkTime.Format(timeFormat))
+
+	if dirInfo , err := os.Stat(dirPath); err == nil && dirInfo.IsDir() {
+		if dir , err := os.Open(dirPath); err == nil {
+			if dirList, err := dir.Readdirnames(0); err == nil {
+				for _, fileName := range dirList {
+					if CheckRegEx( fileName, fileRegEx ) {
+						logger.Debugf("File %s Matched Reg Exp!", fileName)
+
+						// Get the file modification date
+
+						fullFile := filepath.Join( dirPath , fileName)
+
+						if fileInfo, err := os.Stat(fullFile); err == nil {
+							fileModTime := fileInfo.ModTime()
+
+							logger.Debugf("File has time stamp %s", fileModTime.Format(timeFormat))
+
+							if fileModTime.Before(checkTime) {
+								logger.Debug("Added to file list")
+								fileList = append(fileList, fullFile)
+							} else {
+								logger.Debug("Not added to file list")
+							}
+						} else {
+							logger.Warnf("Unable to find file %s. Perhaps it has been deleted", fullFile)
+						}
+					} else {
+						logger.Debugf("File %s did not match reg exp!", fileName)
+					}
+				}
+			} else {
+				logger.Errorf("Unable to read directory %s", dirPath)
+			}
+		} else {
+			logger.Errorf("Unable to open directory %s", dirPath)
+		}
+	} else {
+		logger.Errorf("%s is not a directory", dirPath)
+	}
+
+	return fileList
+}

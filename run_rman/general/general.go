@@ -56,6 +56,29 @@ func init() {
 	flag.StringVar(resList   , "r", "", "Resource name")
 }
 
+func removeOldFiles ( dirName string, fileFilter string , daysOld int ) {
+	logger.Info("Deleting old files ...")
+
+	fileList := utils.FindFiles(dirName, fileFilter, daysOld)
+
+	fileCount := 0
+
+	for _, fileName := range fileList {
+		logger.Debugf("Deleting old file %s ...", fileName)
+
+		if err := os.Remove(fileName); err != nil {
+			logger.Warnf("Unable to remove file %s", fileName)
+		} else {
+			logger.Trace("File removed")
+		}
+		fileCount++
+	}
+	
+	logger.Debugf("%d files processed", fileCount)
+
+	logger.Info("Process complete")
+}
+
 
 // Global functions
 
@@ -365,6 +388,15 @@ func Cleanup() {
 		resource.ReleaseResources(setup.ResourceObtainedFileName)
 	}
 
+	config.SetConfig(setup.Database, "LogKeepTime")
+	logKeepTime, _ := strconv.Atoi(config.ConfigValues["LogKeepTime"])
+
+	regEx := strings.Join( []string { "^", setup.BaseName, "_", "[0-9]+\\.log$"}, "")
+	removeOldFiles(setup.LogDir,regEx,logKeepTime)
+
+	regEx = strings.Join( []string { "^", setup.BaseName, "_", setup.Database, "_", config.RMANScriptBase, "_([0-9]{14})+\\.log$"}, "")
+	removeOldFiles(setup.LogDir,regEx,logKeepTime)
+	
 	logger.Infof("Process complete")
 }
 

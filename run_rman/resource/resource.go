@@ -4,7 +4,6 @@ package resource
 
 import "bufio"
 import "os"
-import "path/filepath"
 import "strconv"
 import "strings"
 import "time"
@@ -284,51 +283,38 @@ func cleanResources() {
 
 	// Open config directory ( location of resource files )
 
-	regEx := strings.Join( []string{ "^", setup.ResourceBaseName, "\\.", setup.ObtainedResSuffix, "\\.[0-9]+$" }, "" )
+	regEx := strings.Join( []string{ "^", setup.BaseName, "\\.", setup.ResourceSuffix, "\\.", setup.ObtainedResSuffix, "\\.[0-9]+$" }, "" )
 	logger.Debugf("Regular expression set to %s", regEx)
 
-	if configDir , err := os.Open(setup.ConfigDir); err == nil {
-		if fileList, err := configDir.Readdirnames(0); err == nil {
-			for _, fileName := range fileList {
-				if utils.CheckRegEx( fileName, regEx ) {
-					logger.Infof("Found file %s. Checking it is an obsolete process ...", fileName)
+	fileList := utils.FindFiles(setup.ConfigDir, regEx, 0) 
 
-					// Getting process ID from file name 
+	for _, fileName := range fileList {
+		logger.Infof("Found file %s. Checking it is an obsolete process ...", fileName)
 
-					partString := strings.Split(fileName,".")
-					pidString  := partString[len(partString)-1]
+		// Getting process ID from file name 
 
-					pid , err := strconv.Atoi(pidString)
-					if err != nil {
-						logger.Errorf("Unable to convert %s to a number", pidString)
-					}
+		partString := strings.Split(fileName,".")
+		pidString  := partString[len(partString)-1]
 
-					// Check that process is not currently running
-				
-					if pidAlive, pidIsName := utils.CheckProcess(pid, setup.BaseName); pidAlive {
-						if pidIsName {
-							logger.Infof("Live file %s found.  Ignoring ...", fileName)
-							continue
-						} else {
-							logger.Warnf("Found running PID %d but not %s.  Releasing resources ...", pid, setup.BaseName)
-						}
-					} else {
-						logger.Warnf("Found old PID %d not currently running. Releasing resources ...", pid)
-					}
-						
-					fullFileName := filepath.Join(setup.ConfigDir , fileName)
-					logger.Debugf("Full file name set to %s", fullFileName)
+		pid , err := strconv.Atoi(pidString)
+		if err != nil {
+			logger.Errorf("Unable to convert %s to a number", pidString)
+		}
 
-					ReleaseResources(fullFileName)
-				} else {
-					logger.Debugf("Found file %s. Ignoring", fileName)
-				}
+		// Check that process is not currently running
+		
+		if pidAlive, pidIsName := utils.CheckProcess(pid, setup.BaseName); pidAlive {
+			if pidIsName {
+				logger.Infof("Live file %s found.  Ignoring ...", fileName)
+				continue
+			} else {
+				logger.Warnf("Found running PID %d but not %s.  Releasing resources ...", pid, setup.BaseName)
 			}
 		} else {
-			logger.Errorf("Unable to read directory %s", setup.ConfigDir)
+			logger.Warnf("Found old PID %d not currently running. Releasing resources ...", pid)
 		}
-	} else {
-		logger.Errorf("Unable to open directory %s", setup.ConfigDir)
+					
+		ReleaseResources(fileName)
 	}
 
 	logger.Info("Process complete")
@@ -385,6 +371,12 @@ func ReleaseResources(resFileName string) {
 		}
 
 		resFile.Close()
+
+		// Now can remove the file 
+
+		if err := os.Remove(resFileName); err != nil {
+			logger.Errorf("Unable to remove file %s", resFileName)
+		}
 	} else {
 		logger.Warnf("Unable to open file %s.  Nothing to do", resFileName)
 	}
@@ -392,12 +384,6 @@ func ReleaseResources(resFileName string) {
 	// Unlock the usage file
 
 	filelock.UnlockFile(setup.ResourceUsageFileName)
-
-	// Now can remove the file 
-
-	if err := os.Remove(resFileName); err != nil {
-		logger.Errorf("Unable to remove file %s", resFileName)
-	}
 	
 	logger.Info("Process complete")
 }

@@ -16,6 +16,7 @@ import "github.com/daviesluke/setup"
 import "github.com/daviesluke/utils"
 import "github.com/daviesluke/run_rman/config"
 import "github.com/daviesluke/run_rman/locker"
+import "github.com/daviesluke/run_rman/resource"
 
 
 // local Variables
@@ -28,7 +29,7 @@ var errorEmail = flag.String("erroremail" , "", "E-mail list for errors")
 var email      = flag.String("email"      , "", "E-mail list for success / error")
 var lock       = flag.String("lock"       , "", "Lock name")
 var logDir     = flag.String("log"        , "", "Directory for logs")
-var resource   = flag.String("resource"   , "", "Resource name")
+var resList    = flag.String("resource"   , "", "Resource name")
 
 // Global Variables
 
@@ -52,7 +53,7 @@ func init() {
 	flag.StringVar(email     , "E", "", "E-mail List for success / error")
 	flag.StringVar(lock      , "l", "", "Lock name")
 	flag.StringVar(logDir    , "L", "", "Alternative Log directory")
-	flag.StringVar(resource  , "r", "", "Resource name")
+	flag.StringVar(resList   , "r", "", "Resource name")
 }
 
 
@@ -97,11 +98,11 @@ func ValidateFlags () {
 		} else if flagParam.Name == "resource" || flagParam.Name == "r" {
 			logger.Info("Validating resources ...")
 			resourceRegEx := "^([a-zA-Z0-9_]+=[0-9]+)+([:;,.][a-zA-Z0-9_]+=[0-9]+)*$"
-			if utils.CheckRegEx(*resource, resourceRegEx) {
-				logger.Debugf("Resources - %s - validated", *resource)
-				SetResource(*resource)
+			if utils.CheckRegEx(*resList, resourceRegEx) {
+				logger.Debugf("Resources - %s - validated", *resList)
+				SetResource(*resList)
 			} else {
-				logger.Errorf("Invalid resources - %s", *resource)
+				logger.Errorf("Invalid resources - %s", *resList)
 			}
 		} else if flagParam.Name == "db" || flagParam.Name == "d" {
 			setup.SetDatabase(*database)
@@ -249,7 +250,7 @@ func SetLock (lock string) {
 	logger.Infof("Lock name set to %s", LockName)
 }
 
-func SetResource (resource string) {
+func SetResource (resList string) {
 	logger.Info("Setting resources ...")
 
 	//
@@ -267,14 +268,14 @@ func SetResource (resource string) {
 	for _, delimiter := range delimiterList {
 		logger.Tracef("Checking for delimiter %s", delimiter)
 
-		if strings.Contains(resource,delimiter) {
+		if strings.Contains(resList,delimiter) {
 			resourceDelimiter = delimiter
 			logger.Debugf("Delimiter set to %s", delimiter)
 			break
 		}
 	}
 
-	for _, resourceList := range strings.Split(resource, resourceDelimiter) {
+	for _, resourceList := range strings.Split(resList, resourceDelimiter) {
 		logger.Tracef("Resource list element is %s. Splitting into name and value ...", resourceList)
 		resourceElement := strings.SplitN(resourceList,"=",2)
 		logger.Tracef("Resource Name = %s , Value %s", resourceElement[0], resourceElement[1])
@@ -354,7 +355,15 @@ func RenameLog () {
 func Cleanup() {
 	logger.Infof("Running cleanup ...")
 
-	locker.RemoveLockEntry(setup.LockFileName,setup.CurrentPID)
+	// Remove lock file if specified
+	if LockName != "" {
+		locker.RemoveLockEntry(setup.LockFileName,setup.CurrentPID)
+	}
+
+	// Release resources if specified
+	if len(Resources) > 0 {
+		resource.ReleaseResources(setup.ResourceObtainedFileName)
+	}
 
 	logger.Infof("Process complete")
 }

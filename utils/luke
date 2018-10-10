@@ -1,0 +1,65 @@
+func cleanLockFile(lockFileName string, lockName string) {
+	logger.Info("Cleaning lock file of dead processes ...")
+
+	var lockPIDS []string
+
+	lockCount := 0
+
+	if lockFile , err := os.Open(lockFileName); err == nil {
+		lockScanner := bufio.NewScanner(lockFile)
+
+		for lockScanner.Scan() {
+			variableTokens := strings.SplitN(lockScanner.Text(), " ", 2)
+
+			lockPID       := variableTokens[0]
+			ilockPID, _   := strconv.Atoi(variableTokens[0])
+			fileLockName := variableTokens[1]
+
+			if fileLockName == lockName {
+				logger.Debugf("Found PID with lock name %s. Checking PID %d is still alive ...", fileLockName, ilockPID)
+
+				if checkProcess , err := ps.FindProcess(ilockPID); checkProcess != nil && err == nil {
+					processName := checkProcess.Executable()
+
+					processName = filepath.Base(processName)
+					processNameParts := strings.SplitN(processName,".",2)
+					processName = processNameParts[0]
+
+					logger.Infof("PID %d found, Process is running %s", ilockPID, processName)
+
+					if processName != setup.BaseName {
+						logger.Warnf("Old PID %d found in lock file but is running %s. Removing ...", ilockPID, processName)
+
+						// Need to remove the line as it is old
+
+						lockPIDS[lockCount] = lockPID
+						lockCount++
+					} else {
+						logger.Debugf("Found PID running %s", processName)
+					}
+				} else {
+					logger.Warnf("Old PID %d found in lock file and is no longer running. Removing ...", ilockPID)
+
+					lockPIDS = append(lockPIDS,lockPID)
+					lockCount++
+				}
+			} else {
+				logger.Debugf("Found PID %d for lock name %s", ilockPID, fileLockName)
+			}
+		}
+
+		lockFile.Close()
+		logger.Debug("Closed lock file")
+	} else {
+		logger.Infof("Lock file not longer present")
+	}
+
+	// Remove any PIDs found
+
+	for lockCounter := 0; lockCounter < lockCount; lockCounter++ {
+		logger.Debugf("Removing %s from lock file", lockPIDS[lockCounter])
+		RemoveLockEntry(lockFileName, lockPIDS[lockCounter])
+	}
+
+	logger.Info("Process complete")
+}

@@ -15,10 +15,12 @@ import "github.com/daviesluke/logger"
 // Global Variables
 
 const (
-	LockSuffix      string = "lock"
-	LogSuffix       string = "log"
-	ConfigSuffix    string = "cfg"
-	ResourceSuffix  string = "resources"
+	LockSuffix        string = "lock"
+	LogSuffix         string = "log"
+	ConfigSuffix      string = "cfg"
+	ResourceSuffix    string = "resources"
+	UsedResSuffix     string = "used"
+	ObtainedResSuffix string = "obtained"
 )
 
 // Directories
@@ -38,6 +40,7 @@ var LogConfigFileName        string
 var ConfigFileName           string
 var OldConfigFileName        string
 var LockFileName             string
+var ResourceBaseName         string
 var ResourceFileName         string
 var ResourceUsageFileName    string
 var ResourceObtainedFileName string
@@ -181,12 +184,12 @@ func setResourceFile () {
 	// Setting up resource file names
 	//
 
-	ResourceFileName         = strings.Join([]string{BaseName, ResourceSuffix}, ".")
-	ResourceFileName         = filepath.Join(ConfigDir, ResourceFileName)
+	ResourceBaseName         = strings.Join([]string{BaseName, ResourceSuffix}, ".")
+	ResourceFileName         = filepath.Join(ConfigDir, ResourceBaseName)
 
-	ResourceUsageFileName    = strings.Join([]string{ResourceFileName, "used"}, ".")
+	ResourceUsageFileName    = strings.Join([]string{ResourceFileName, UsedResSuffix}, ".")
 
-	ResourceObtainedFileName = strings.Join([]string{ResourceUsageFileName, CurrentPID}, ".")
+	ResourceObtainedFileName = strings.Join([]string{ResourceFileName, ObtainedResSuffix, CurrentPID}, ".")
 }
 
 

@@ -4,7 +4,6 @@ package locker
 
 import "bufio"
 import "os"
-import "path/filepath"
 import "strings"
 import "strconv"
 import "time"
@@ -14,8 +13,8 @@ import "time"
 import "github.com/daviesluke/filelock"
 import "github.com/daviesluke/logger"
 import "github.com/daviesluke/setup"
+import "github.com/daviesluke/utils"
 import "github.com/daviesluke/run_rman/config"
-import "github.com/daviesluke/mitchellh/go-ps"
 
 
 // local Variables
@@ -124,24 +123,14 @@ func cleanLockFile(lockFileName string, lockName string) {
 			if fileLockName == lockName {
 				logger.Debugf("Found PID with lock name %s. Checking PID %d is still alive ...", fileLockName, ilockPID)
 
-				if checkProcess , err := ps.FindProcess(ilockPID); checkProcess != nil && err == nil {
-					processName := checkProcess.Executable()
-
-					processName = filepath.Base(processName)
-					processNameParts := strings.SplitN(processName,".",2)
-					processName = processNameParts[0]
-
-					logger.Infof("PID %d found, Process is running %s", ilockPID, processName)
-
-					if processName != setup.BaseName {
-						logger.Warnf("Old PID %d found in lock file but is running %s. Removing ...", ilockPID, processName)
-
-						// Need to remove the line as it is old
-
-						lockPIDS[lockCount] = lockPID
-						lockCount++
+				if pidAlive, pidIsName := utils.CheckProcess(ilockPID, setup.BaseName); pidAlive {
+					if pidIsName {
+						logger.Infof("Process %d is running %s.  Valid entry", ilockPID, setup.BaseName)
 					} else {
-						logger.Debugf("Found PID running %s", processName)
+						logger.Warnf("Running process %d is not running %s.  Invalid entry. Removing ...", ilockPID, setup.BaseName)
+
+						lockPIDS = append(lockPIDS,lockPID)
+						lockCount++
 					}
 				} else {
 					logger.Warnf("Old PID %d found in lock file and is no longer running. Removing ...", ilockPID)
@@ -178,9 +167,9 @@ func addLockEntry(lockFileName, pid, lockName string) {
 	filelock.LockFile(lockFileName)
 
 	if lockFile, err := os.OpenFile(lockFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600); err == nil {
-		writeString := strings.Join( []string{ pid, " ", lockName, "\n" }, "")
+		writeString := strings.Join( []string{ pid, " ", lockName }, "")
 	
-		if _, err := lockFile.WriteString(writeString); err != nil {
+		if _, err := lockFile.WriteString(writeString+"\n"); err != nil {
 			filelock.UnlockFile(lockFileName)
 			logger.Errorf("Unable to write to lockfile %s", lockFileName)
 		} else {
@@ -228,6 +217,8 @@ func LockProcess (lockName, database string) {
 
 func RemoveLockEntry(lockFileName string, lockPID string) {
 	logger.Info("Removing lock entry ...")
+	logger.Infof("Lock Name : %s", lockFileName)
+	logger.Infof("Lock PID  : %s", lockPID)
 
 	// To write the file - take a real lock
 	
@@ -303,8 +294,7 @@ func RemoveLockEntry(lockFileName string, lockPID string) {
 			logger.Debug("Lock file still contains entries.")
 		}
 	} else {
-		filelock.UnlockFile(lockFileName)
-		logger.Errorf("Unable to find lock file after removing entry")
+		logger.Errorf("Unable to find lock file %s", lockFileName)
 	}
 	
 	// Unlock the file

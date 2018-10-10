@@ -6,6 +6,7 @@ import "bufio"
 import "io"
 import "os"
 import "os/signal"
+import "path/filepath"
 import "regexp"
 import "strings"
 import "strconv"
@@ -14,6 +15,7 @@ import "syscall"
 // Local imports
 
 import "github.com/daviesluke/logger"
+import "github.com/daviesluke/mitchellh/go-ps"
 
 // Local functions 
 
@@ -196,5 +198,33 @@ func CopyFileContents( oldFileName string , newFileName string ) {
         // Deferred files to close at end
 
         logger.Info("Process complete")
+}
+
+func CheckProcess (pid int, processName string) (bool, bool) {
+	pidAlive  := false
+	pidIsName := false
+
+	if checkProcess , err := ps.FindProcess(pid); checkProcess != nil && err == nil {
+		logger.Debugf("Pid %d is running", pid)
+
+		pidAlive     = true
+
+		pidName      := checkProcess.Executable()
+
+		pidName       = filepath.Base(pidName)
+		pidNameParts := strings.SplitN(pidName,".",2)
+		pidName       = pidNameParts[0]
+
+		logger.Infof("PID %d found, Process is running %s", pid, pidName)
+
+		if pidName == processName {
+			logger.Debugf("Pid %d matches name %s", pid, processName)
+			pidIsName = true
+		}
+	} else {
+		logger.Debugf("Pid %d not found running")
+	}
+
+	return pidAlive, pidIsName
 }
 

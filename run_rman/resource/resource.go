@@ -4,6 +4,7 @@ package resource
 
 import "bufio"
 import "os"
+import "path/filepath"
 import "strconv"
 import "strings"
 import "time"
@@ -23,7 +24,11 @@ import "github.com/daviesluke/run_rman/config"
 // Local functions
 
 func getResource ( resourceName string, resourceValue int, timeOutMins int) {
-	logger.Info("Alloctaing resource ...")
+	logger.Info("Allocating resource ...")
+
+	logger.Infof("Resource Name  : %s", resourceName)
+	logger.Infof("Resource Value : %d", resourceValue)
+	logger.Infof("Time out       : %d mins", timeOutMins)
 
 	var imaxResource  int
 	var iusedResource int
@@ -33,9 +38,12 @@ func getResource ( resourceName string, resourceValue int, timeOutMins int) {
 
 	if _, err = os.Stat(setup.ResourceFileName); err != nil {
 		logger.Errorf("Unable to find resource file %s", setup.ResourceFileName)
+	} else {
+		logger.Debugf("File %s exists", setup.ResourceFileName)
 	}
 
 	maxResource :=  utils.LookupFile(setup.ResourceFileName, resourceName, 1, 2, ":", 1)
+	logger.Debugf("Maximum for %s is %s", resourceName, maxResource)
 
 	if maxResource == "" {
 		logger.Errorf("Resource %s not found in file %s", resourceName, setup.ResourceFileName)
@@ -55,6 +63,9 @@ func getResource ( resourceName string, resourceValue int, timeOutMins int) {
 	remainingResource := resourceValue
 	
 	for allocatedResource := 0; resourceValue - allocatedResource > 0; {
+		logger.Debugf("Remaining resource - %d", remainingResource)
+		logger.Debugf("Allocated resource - %d", allocatedResource)
+
 		// Check to see of any resources are currently being used 
 
 		iusedResource  = 0
@@ -74,24 +85,39 @@ func getResource ( resourceName string, resourceValue int, timeOutMins int) {
 		// Check again as after the clean the file may have been removed
 
 		if _, err = os.Stat(setup.ResourceUsageFileName); err == nil {
-			usedCounter   := 1
+		
+			usedResource  := utils.LookupFile(setup.ResourceUsageFileName, resourceName, 1, 2, ":", 1)
 
 			// Loop through used file looking for usage 
 
-			for usedResource := utils.LookupFile(setup.ResourceUsageFileName, resourceName, 1, 2, ":", usedCounter); usedResource != ""; usedCounter++ {
+			for usedCounter := 2; usedResource != ""; usedCounter++ {
+				logger.Debugf("Found %s units used", usedResource)
 				if usedAmount, err := strconv.Atoi(usedResource); err != nil {
 					filelock.UnlockFile(setup.ResourceUsageFileName)
 					logger.Errorf("Resource %s not configured properly in %s with value %s", resourceName, setup.ResourceUsageFileName, usedResource)
 				} else {
 					iusedResource+=usedAmount
+					logger.Debugf("Cumulative units used - %d", iusedResource)
 				}
+
+				// Get next one 
+
+				logger.Debugf("Looking up %d occurrence ...", usedCounter)
+
+				usedResource = utils.LookupFile(setup.ResourceUsageFileName, resourceName, 1, 2, ":", usedCounter)
 			}
 		}
 
 		freeResource := imaxResource - iusedResource
+		logger.Debugf("Amount of free resource is %d", freeResource)
+
+		if freeResource < 0 {
+			filelock.UnlockFile(setup.ResourceUsageFileName)
+			logger.Errorf("Resource calculation got negative resources. Fix resource allocation files. Exiting with error ...")
+		}
 
 		if freeResource == 0 {
-			logger.Infof("No resources of type %s available", resourceName)
+			logger.Infof("No resources of type %s currently available", resourceName)
 
 			resourceCounter++
 		} else {
@@ -117,10 +143,12 @@ func getResource ( resourceName string, resourceValue int, timeOutMins int) {
 
 		filelock.UnlockFile(setup.ResourceUsageFileName)
 
+		logger.Debugf("Remaining resource to be allocated - %d", remainingResource)
+
 		if remainingResource > 0 {
 			if resourceCounter > timeOutMins {
 				logger.Warnf("Timed Out!")
-				releaseResources(setup.ResourceObtainedFileName)
+				ReleaseResources(setup.ResourceObtainedFileName)
 				logger.Errorf("Unable to obtain %d units for resource %s", resourceValue, resourceName)
 			}
 
@@ -136,15 +164,18 @@ func addResource(resourceName string, resourceValue int) {
 	logger.Info("Writing resource file ...")
 
 	// File is already locked when reading and adding entries so do not need to lock again
+	// but if there is any error then perform an unlock first 
 
 	// So we can open the file for writing
 
 	// Write string to both files
 
-	writeString := strings.Join( []string{ resourceName, ":", strconv.Itoa(resourceValue), "\n" }, "")
+	writeString := strings.Join( []string{ resourceName, ":", strconv.Itoa(resourceValue) }, "")
+
+	// Write to Used file
 
 	if resourceUsageFile , err := os.OpenFile(setup.ResourceUsageFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600); err == nil {
-		if _, err := resourceUsageFile.WriteString(writeString); err != nil {
+		if _, err := resourceUsageFile.WriteString(writeString+"\n"); err != nil {
 			filelock.UnlockFile(setup.ResourceUsageFileName)
 			logger.Errorf("Unable to write to resource file %s", setup.ResourceUsageFileName)
 		} else {
@@ -155,8 +186,10 @@ func addResource(resourceName string, resourceValue int) {
 		logger.Debug("Closed resource usage file")
 	}
 
+	// Write to process used file
+
 	if resourceObtainedFile , err := os.OpenFile(setup.ResourceObtainedFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600); err == nil {
-		if _, err := resourceObtainedFile.WriteString(writeString); err != nil {
+		if _, err := resourceObtainedFile.WriteString(writeString+"\n"); err != nil {
 			filelock.UnlockFile(setup.ResourceUsageFileName)
 			logger.Errorf("Unable to write to resource file %s", setup.ResourceObtainedFileName)
 		} else {
@@ -170,7 +203,166 @@ func addResource(resourceName string, resourceValue int) {
 	logger.Info("Process complete")
 }
 
-func releaseResources(resFileName string) {
+func removeUsedResource(resString string) {
+	logger.Info("Removing used resource value ...")
+
+	logger.Infof("Resource %s", resString)
+
+	// Create a temporary file 
+
+	tempFileName := strings.Join( []string { setup.ResourceUsageFileName, ".", setup.CurrentPID }, "")
+
+	logger.Debugf("Temp file name set to %s", tempFileName)
+
+	tempFile , err := os.OpenFile(tempFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+
+	if err != nil {
+		filelock.UnlockFile(setup.ResourceUsageFileName)
+		logger.Errorf("Unable to create temporary file %s", tempFileName)
+	}
+	
+	missedWrite := false
+
+	// Open up the used file
+
+	logger.Debugf("Opening file %s", setup.ResourceUsageFileName)
+
+	if usedFile, err := os.Open(setup.ResourceUsageFileName); err == nil {
+		// Set up scanner 
+
+		usedScanner := bufio.NewScanner(usedFile)
+
+		for usedScanner.Scan() {
+			usedString := usedScanner.Text()
+			logger.Debugf("Found string to write - %s", usedString)
+
+			if missedWrite || usedString != resString {
+				logger.Debug("Writing string to temp file")
+				if _, err := tempFile.WriteString(usedString+"\n"); err != nil {
+					filelock.UnlockFile(setup.ResourceUsageFileName)
+					logger.Errorf("Unable to write file %s", tempFileName)
+				}
+			} else {
+				logger.Debug("Skipped write")
+				missedWrite = true
+			}
+		}
+	
+		usedFile.Close()
+		logger.Debug("Closed used file")
+	}
+
+	tempFile.Close()
+	logger.Debug("Closed temp file. Renaming temp file to used file")
+
+	if err := os.Rename(tempFileName, setup.ResourceUsageFileName); err != nil {
+		filelock.UnlockFile(setup.ResourceUsageFileName)
+		logger.Errorf("Unable to rename file %s to %s", tempFileName, setup.ResourceUsageFileName)
+	}
+
+	if usageInfo, err := os.Stat(setup.ResourceUsageFileName); err == nil {
+		logger.Debugf("File %s is size %d bytes", setup.ResourceUsageFileName, usageInfo.Size())
+		if usageInfo.Size() == 0 {
+			logger.Info("Usage file is empty. Deleting file ...")
+			if err := os.Remove(setup.ResourceUsageFileName); err != nil {
+				filelock.UnlockFile(setup.ResourceUsageFileName)
+				logger.Errorf("Unable to remove used file %s", setup.ResourceUsageFileName)
+			}
+		}
+	} else {
+		filelock.UnlockFile(setup.ResourceUsageFileName)
+		logger.Errorf("Unable to find file %s", setup.ResourceUsageFileName)
+	}
+	
+	logger.Info("Process complete")
+}
+
+func cleanResources() {
+	logger.Info("Cleaning resources file ...")
+
+	// Find any files and see if process is still running
+
+	// Open config directory ( location of resource files )
+
+	regEx := strings.Join( []string{ "^", setup.ResourceBaseName, "\\.", setup.ObtainedResSuffix, "\\.[0-9]+$" }, "" )
+	logger.Debugf("Regular expression set to %s", regEx)
+
+	if configDir , err := os.Open(setup.ConfigDir); err == nil {
+		if fileList, err := configDir.Readdirnames(0); err == nil {
+			for _, fileName := range fileList {
+				if utils.CheckRegEx( fileName, regEx ) {
+					logger.Infof("Found file %s. Checking it is an obsolete process ...", fileName)
+
+					// Getting process ID from file name 
+
+					partString := strings.Split(fileName,".")
+					pidString  := partString[len(partString)-1]
+
+					pid , err := strconv.Atoi(pidString)
+					if err != nil {
+						logger.Errorf("Unable to convert %s to a number", pidString)
+					}
+
+					// Check that process is not currently running
+				
+					if pidAlive, pidIsName := utils.CheckProcess(pid, setup.BaseName); pidAlive {
+						if pidIsName {
+							logger.Infof("Live file %s found.  Ignoring ...", fileName)
+							continue
+						} else {
+							logger.Warnf("Found running PID %d but not %s.  Releasing resources ...", pid, setup.BaseName)
+						}
+					} else {
+						logger.Warnf("Found old PID %d not currently running. Releasing resources ...", pid)
+					}
+						
+					fullFileName := filepath.Join(setup.ConfigDir , fileName)
+					logger.Debugf("Full file name set to %s", fullFileName)
+
+					ReleaseResources(fullFileName)
+				} else {
+					logger.Debugf("Found file %s. Ignoring", fileName)
+				}
+			}
+		} else {
+			logger.Errorf("Unable to read directory %s", setup.ConfigDir)
+		}
+	} else {
+		logger.Errorf("Unable to open directory %s", setup.ConfigDir)
+	}
+
+	logger.Info("Process complete")
+}
+
+// Global functions
+
+func GetResources ( resources map[string]int ) {
+	logger.Info("Getting resources ...")
+
+	// Loop through resources 
+
+	resourceCount := 0
+
+	config.SetConfig(setup.Database, "CheckResourceMins")
+
+	checkResourceMins, _ := strconv.Atoi(config.ConfigValues["CheckResourceMins"])
+
+	for resourceName, resourceValue := range resources {
+		logger.Infof("Checking resource %s, attempting to allocate %d units ...", resourceName, resourceValue)
+
+		getResource(resourceName, resourceValue, checkResourceMins)
+	
+		resourceCount++
+	}
+
+	if resourceCount == 0 {
+		logger.Info("No resources to provision")
+	}
+
+	logger.Info("Process complete")
+}
+
+func ReleaseResources(resFileName string) {
 	logger.Info("Releasing resources ...")
 
 	// Need to get file lock to affect these files
@@ -207,101 +399,5 @@ func releaseResources(resFileName string) {
 		logger.Errorf("Unable to remove file %s", resFileName)
 	}
 	
-	logger.Info("Process complete")
-}
-
-func removeUsedResource(resString string) {
-	logger.Info("Removing used resource value ...")
-
-	// Create a temporary file 
-
-	tempFileName := strings.Join( []string { setup.ResourceUsageFileName, ".", setup.CurrentPID }, "")
-
-	tempFile , err := os.OpenFile(tempFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-
-	if err != nil {
-		filelock.UnlockFile(setup.ResourceUsageFileName)
-		logger.Errorf("Unable to create temporary file %s", tempFileName)
-	}
-	
-	missedWrite := false
-
-	// Open up the used file
-
-	if usedFile, err := os.Open(setup.ResourceUsageFileName); err == nil {
-		// Set up scanner 
-
-		usedScanner := bufio.NewScanner(usedFile)
-
-		for usedScanner.Scan() {
-			usedString := usedScanner.Text()
-
-			if missedWrite || usedString != resString {
-				if _, err := tempFile.WriteString(usedString+"\n"); err != nil {
-					filelock.UnlockFile(setup.ResourceUsageFileName)
-					logger.Errorf("Unable to write file %s", tempFileName)
-				}
-			} else {
-				missedWrite = true
-			}
-		}
-	
-		usedFile.Close()
-	}
-
-	tempFile.Close()
-
-	if err := os.Rename(tempFileName, setup.ResourceUsageFileName); err != nil {
-		filelock.UnlockFile(setup.ResourceUsageFileName)
-		logger.Errorf("Unable to rename file %s to %s", tempFileName, setup.ResourceUsageFileName)
-	}
-
-	if usageInfo, err := os.Stat(setup.ResourceUsageFileName); err == nil {
-		if usageInfo.Size() == 0 {
-			logger.Info("Usage file is empty. Deleting file ...")
-			if err := os.Remove(setup.ResourceUsageFileName); err != nil {
-				filelock.UnlockFile(setup.ResourceUsageFileName)
-				logger.Errorf("Unable to remove used file %s", setup.ResourceUsageFileName)
-			}
-		}
-	} else {
-		filelock.UnlockFile(setup.ResourceUsageFileName)
-		logger.Errorf("Unable to find file %s", setup.ResourceUsageFileName)
-	}
-	
-	logger.Info("Process complete")
-}
-
-func cleanResources() {
-	logger.Info("Cleaning resources file ...")
-
-	logger.Info("Process complete")
-}
-
-// Global functions
-
-func GetResources ( resources map[string]int ) {
-	logger.Info("Getting resources ...")
-
-	// Loop through resources 
-
-	resourceCount := 0
-
-	config.SetConfig(setup.Database, "CheckResourceMins")
-
-	checkResourceMins, _ := strconv.Atoi(config.ConfigValues["CheckResourceMins"])
-
-	for resourceName, resourceValue := range resources {
-		logger.Infof("Checking resource %s, attempting to allocate %d units ...", resourceName, resourceValue)
-
-		getResource(resourceName, resourceValue, checkResourceMins)
-	
-		resourceCount++
-	}
-
-	if resourceCount == 0 {
-		logger.Info("No resources to provision")
-	}
-
 	logger.Info("Process complete")
 }

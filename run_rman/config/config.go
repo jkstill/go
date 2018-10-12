@@ -20,7 +20,8 @@ import "github.com/daviesluke/utils"
 var ConfigValues = map[string]string {
 	"LogKeepTime"       : "14",
 	"NLS_DATE_FORMAT"   : "DD_MON_YYYY HH24:MI:SS",
-	"OraEnvPath"        : "/etc/oratab:/var/opt/oracle/oratab",
+	"OraTabPath"        : "/etc/oratab:/var/opt/oracle/oratab",
+	"RMANConfig"        : "",
 	"CatalogConnection" : "",
 	"TargetConnection"  : "/",
 	"CheckLockMins"     : "5",
@@ -173,19 +174,44 @@ func SetRMANScript () {
 }
 
 func SetConfig ( database string , configName string ) {
-	logger.Info("Overriding default config ...")
+	logger.Info("Checking and setting config ...")
+
+	//
+	// If variable ends with Connection then careful with printing passwords
+	//
+
+	isConnection := utils.CheckRegEx(configName,".+Connection$")
 
 	newConfigName := strings.Join( []string{ database, configName}, "_")
 	logger.Tracef("New config name set to %s", newConfigName)
 	
 	if ConfigFileValues[newConfigName] != "" {
 		ConfigValues[configName] = ConfigFileValues[newConfigName]
-		logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, ConfigValues[configName])
+		if isConnection {
+			logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, utils.RemovePassword(ConfigValues[configName]))
+		} else {
+			logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, ConfigValues[configName])
+		}
 	} else if ConfigFileValues[configName] != "" {
 		ConfigValues[configName] = ConfigFileValues[configName]
-		logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, ConfigValues[configName])
+		if isConnection {
+			logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, utils.RemovePassword(ConfigValues[configName]))
+		} else {
+			logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, ConfigValues[configName])
+		}
 	} else {
 		logger.Infof("No changes made from default name for %s - Value %s", configName, ConfigValues[configName])
+	}
+
+
+	logger.Info("Process complete")
+}
+
+func SetAllConfig ( database string ) {
+	logger.Info("Checking all config options ...")
+
+	for configName, _ := range ConfigValues {
+		SetConfig( database, configName)
 	}
 
 	logger.Info("Process complete")

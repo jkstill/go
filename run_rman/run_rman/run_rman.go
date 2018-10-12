@@ -12,6 +12,8 @@ import "github.com/daviesluke/run_rman/config"
 import "github.com/daviesluke/run_rman/general"
 import "github.com/daviesluke/run_rman/locker"
 import "github.com/daviesluke/run_rman/resource"
+import "github.com/daviesluke/run_rman/oracle"
+import "github.com/daviesluke/run_rman/oracle/rman"
 
 // Local Variables
 
@@ -51,6 +53,12 @@ func main() {
 
 	// Set any resources supplied
 	resource.GetResources(general.Resources)
+
+	// Check the connections
+	oracle.CheckConnections()
+
+	// Get RMAN config
+	rman.SaveConfig()
 
 	// Perform file removal, lock removal, resources cleanup needed
 	general.Cleanup()

@@ -3,13 +3,13 @@ package utils
 // Standard imports
 
 import "bufio"
+import "fmt"
 import "io"
 import "os"
 import "os/signal"
 import "path/filepath"
 import "regexp"
 import "strings"
-import "strconv"
 import "syscall"
 import "time"
 
@@ -28,26 +28,52 @@ func CheckRegEx(checkString string, regEx string) bool {
 	logger.Tracef("Set regular expression -> %s", regEx)
 	
 	logger.Tracef("Checking to see if string %s matches regex", checkString)
-	stringMatch, err := regexp.MatchString(regEx, checkString)
+	found, err := regexp.MatchString(regEx, checkString)
 	if err != nil {
 		logger.Errorf("Invalid regular expression %s", regEx)
 	}
 
-	if stringMatch {
-		logger.Trace("String matched!")
-	} else {
-		logger.Trace("String NOT matched!")
+	logger.Tracef("Returning %t", found)
+
+	return found
+}
+
+func CheckRegExGroup(checkString string, regEx string, ignoreRegEx string, regExGroupCount int) bool {
+	logger.Tracef("Regular expression %s, ignore list %s", regEx, ignoreRegEx)
+
+	fullRegEx := strings.Join( []string{ ignoreRegEx, regEx }, "|")
+
+	found := false
+
+	// Compile the regular expression
+	if re, err := regexp.Compile(fullRegEx); err == nil {
+		
+		// Increment the group count as we add the number of ignore groups to the final regexp
+		groupCount := regExGroupCount+1
+		logger.Tracef("Group count %d", groupCount)
+
+		// $1 for example is produced only when string matches the first group
+		groupString := fmt.Sprintf("$%d", groupCount)
+		logger.Tracef("Group string %s", groupString)
+
+		// This leaves just the string that matches the last group 
+		// i.e. has survived removal during the matching against the ignore list
+		ignoreString := re.ReplaceAllString(checkString, groupString)
+		logger.Debugf("String after ignore list - %s", ignoreString)
+
+		// Now check this against the orginal string to see if the line still matches
+		found = CheckRegEx(ignoreString, regEx)
 	}
 
-	logger.Tracef("Returning %s", strconv.FormatBool(stringMatch))
+	logger.Tracef("Returning %t", found)
 
-	return stringMatch
+	return found
 }
 
 func RemovePassword(checkString string) string {
-	var userName        string
+	logger.Debug("Removing any passwords found ...")
 
-	logger.Info("Removing any passwords found ...")
+	var userName        string
 
 	logger.Trace("Checking string for passwords ...")
 
@@ -79,7 +105,7 @@ func RemovePassword(checkString string) string {
 		logger.Tracef("Username now set to %s", userName)
 	}
 
-	logger.Infof("Process complete - returning %s", userName)
+	logger.Debugf("Process complete - returning %s", userName)
 
 	return userName
 }
@@ -167,34 +193,55 @@ func LookupFile(searchFileName string, searchString string, searchIndex int, ret
 	return returnString
 }
 
-func CopyFileContents( oldFileName string , newFileName string ) {
+func CopyFileContents( fromFileName string , toFileName string , regEx string ) {
         logger.Info("Copying file contents ...")
 
-	logger.Infof("Copying from %s to %s", oldFileName, newFileName)
+	logger.Infof("Copying from %s to %s", fromFileName, toFileName)
 
-        oldFile, err := os.Open(oldFileName)
+        fromFile, err := os.Open(fromFileName)
         if err != nil {
-               logger.Errorf("Unable to open read file %s for copying", oldFileName)
+               logger.Errorf("Unable to open read file %s for copying", fromFileName)
         }
 
-        defer oldFile.Close()
+        defer fromFile.Close()
 
-        newFile, err := os.OpenFile(newFileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+        toFile, err := os.OpenFile(toFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
         if err != nil {
-                logger.Errorf("Unable to open write file %s for copying", newFileName)
+                logger.Errorf("Unable to open write file %s for copying", toFileName)
         }
 
-        defer newFile.Close()
+        defer toFile.Close()
 
-        // Now copy the contents
+	if regEx == "" {
+		// Copy the entire contents
+	
+		if _, err := io.Copy(toFile, fromFile); err != nil {
+			logger.Errorf("Unable to copy file %s to %s", fromFileName, toFileName)
+		}
+	} else {
+		logger.Debugf("Using regular expression %s to write files", regEx)
 
-        if _, err := io.Copy(newFile, oldFile); err != nil {
-                logger.Errorf("Unable to copy file %s to %s", oldFileName, newFileName)
-        }
+		// Copy line by line if matches the regular expression
+
+		fromScanner := bufio.NewScanner(fromFile)
+
+		for fromScanner.Scan() {
+			logger.Tracef("Checking line %s", fromScanner.Text())
+
+			if CheckRegEx(fromScanner.Text(), regEx) {
+				if _, err := toFile.WriteString(fromScanner.Text()+"\n"); err != nil {
+					logger.Errorf("Unable to write to file %s", toFileName)
+				}
+				logger.Trace("Written to file")
+			} else {
+				logger.Trace("Ignored line")
+			}
+		}
+	}
 
         // Flush anything out to disk
 
-        newFile.Sync()
+        toFile.Sync()
 
         // Deferred files to close at end
 
@@ -244,11 +291,13 @@ func FindFiles ( dirPath string, fileRegEx string, daysOld int ) []string {
 	checkTime = checkTime.AddDate(0, 0, daysOld*-1) 
 
 	logger.Debugf("Check time set to %s",checkTime.Format(timeFormat))
-
+	
+	// Check that directory exists and is a directory
 	if dirInfo , err := os.Stat(dirPath); err == nil && dirInfo.IsDir() {
 		if dir , err := os.Open(dirPath); err == nil {
 			if dirList, err := dir.Readdirnames(0); err == nil {
 				for _, fileName := range dirList {
+					// Check file name
 					if CheckRegEx( fileName, fileRegEx ) {
 						logger.Debugf("File %s Matched Reg Exp!", fileName)
 
@@ -261,6 +310,7 @@ func FindFiles ( dirPath string, fileRegEx string, daysOld int ) []string {
 
 							logger.Debugf("File has time stamp %s", fileModTime.Format(timeFormat))
 
+							// Check dates 
 							if fileModTime.Before(checkTime) {
 								logger.Debug("Added to file list")
 								fileList = append(fileList, fullFile)
@@ -277,6 +327,9 @@ func FindFiles ( dirPath string, fileRegEx string, daysOld int ) []string {
 			} else {
 				logger.Errorf("Unable to read directory %s", dirPath)
 			}
+
+			// Close directory
+			dir.Close()
 		} else {
 			logger.Errorf("Unable to open directory %s", dirPath)
 		}
@@ -285,4 +338,33 @@ func FindFiles ( dirPath string, fileRegEx string, daysOld int ) []string {
 	}
 
 	return fileList
+}
+
+func FindInFile( fileName string, regEx string, ignoreRegEx string, regGroup int ) bool {
+	logger.Debug("Checking file for regular expression ...")
+
+	found := false
+
+	if file, err := os.Open(fileName); err == nil {
+		fileScanner := bufio.NewScanner(file)
+
+		for fileScanner.Scan() {
+			if ignoreRegEx == "" {
+				found = CheckRegEx(fileScanner.Text(),regEx)
+			} else {
+				found = CheckRegExGroup(fileScanner.Text(),regEx,ignoreRegEx,regGroup) 
+			}
+
+			if found {
+				logger.Debug("Found matching string")
+				break
+			}
+		}
+
+		file.Close()
+	}
+
+	logger.Debugf("Returning %t", found)
+
+	return found
 }

@@ -199,8 +199,6 @@ func LockProcess (lockName, database string) {
 	// Reset the number of minutes to wait before locking process
 
 	if lockName != "" {
-		config.SetConfig(database, "CheckLockMins")
-
 		checkLockMins, _ := strconv.Atoi(config.ConfigValues["CheckLockMins"])
 
 		checkLock(setup.LockFileName, lockName, checkLockMins)

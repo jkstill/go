@@ -30,6 +30,7 @@ var TmpDir                   string
 var LogDir                   string
 var OldLogDir                string
 var ConfigDir                string
+var RMANScriptDir            string
 
 // Files
 
@@ -44,6 +45,7 @@ var ResourceBaseName         string
 var ResourceFileName         string
 var ResourceUsageFileName    string
 var ResourceObtainedFileName string
+var TmpFileName              string
 
 // Misc variables 
 
@@ -127,6 +129,19 @@ func setBase () {
 	logger.Tracef("Base name set to %s",BaseName)
 }
 
+func setTmpFile () {
+	//
+	// Set the default temp file
+	//
+
+	setTmpDir()
+
+	logger.Trace("Getting temp file name ...")
+	TmpFileName = strings.Join( []string{ BaseName, CurrentPID }, ".")
+	TmpFileName = filepath.Join( TmpDir , TmpFileName )
+	logger.Tracef("Temp file set to %s", TmpFileName)
+	
+}
 func setTmpDir () {
 	//
 	// Get the default temporary directory
@@ -192,6 +207,13 @@ func setResourceFile () {
 	ResourceObtainedFileName = strings.Join([]string{ResourceFileName, ObtainedResSuffix, CurrentPID}, ".")
 }
 
+func setRMANDir () {
+	//
+	// Setting up RMAN directory
+	//
+
+	RMANScriptDir = filepath.Join(BaseDir, "rman_scripts")
+}
 
 // Global Functions
 
@@ -202,7 +224,7 @@ func Initialize() {
 
 	setBase()
 
-	setTmpDir()
+	setTmpFile()
 
 	setLog()
 
@@ -211,6 +233,8 @@ func Initialize() {
 	setLockFile()
 
 	setResourceFile()
+
+	setRMANDir()
 }
 
 func SetConfigFile (configFile string) {
@@ -354,4 +378,12 @@ func SetLogMoved ( logMoved bool ) {
 	logger.Debugf("LogMoved set to %t", LogMoved)
 
 	logger.Info("Process complete")
+}
+
+func RenameLog( oldLogfileName, newLogFileName string) {
+	logger.RenameLog( oldLogfileName, newLogFileName, LogConfigFileName)
+}
+
+func CopyFileToLog( title string, fileName string ) {
+	logger.CopyFileToLog( title, fileName, LogConfigFileName)
 }

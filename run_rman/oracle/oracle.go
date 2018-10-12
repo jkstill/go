@@ -1,0 +1,79 @@
+package oracle
+
+// Standard imports
+
+import "database/sql"
+import "strings"
+
+// Local imports
+
+import "github.com/daviesluke/logger"
+import "github.com/daviesluke/setup"
+import "github.com/daviesluke/utils"
+import "github.com/daviesluke/run_rman/config"
+import _ "github.com/daviesluke/mattn/go-oci8"
+
+// local variables
+
+// local functions
+
+func checkConnection (connString string) {
+	logger.Debug("Checking connection ...")
+
+	if db, err := sql.Open("oci8", connString); err == nil {
+
+		if err = db.Ping(); err != nil {
+			logger.Errorf("Unable to connect to database %s using %s", setup.Database, connString)
+		} else {
+			logger.Info("Successfully connected to the target database")
+		}
+		
+		db.Close()
+	}
+	
+	logger.Debug("Process complete")
+}
+	
+
+func checkTargetConnection () {
+	logger.Info("Checking target connection ...")
+
+	targetConnection := config.ConfigValues["TargetConnection"]
+
+	if targetConnection == "/" {
+		targetConnection = "/@?as=sysdba" // sys/.@?as=sysdba
+	} else {
+		regEx := "^[Ss][Yy][Ss]/[^@]+$"
+
+		if utils.CheckRegEx(targetConnection,regEx) {
+			targetConnection = strings.Join( []string{ targetConnection , "as=sysdba"} , "@?")
+		}
+	}
+
+	checkConnection(targetConnection)
+
+	logger.Info("Process complete")
+}
+
+func checkCatalogConnection () {
+	logger.Info("Checking catalog connection ...")
+
+	catalogConnection := config.ConfigValues["CatalogConnection"]
+
+	if catalogConnection == "" { 
+		logger.Infof("No RMAN catalog has been configured - running with control file only")
+	} else {
+		checkConnection(catalogConnection)
+	}
+
+	logger.Info("Process complete")
+}
+
+
+// Global functions
+
+func CheckConnections () {
+	checkTargetConnection()
+
+	checkCatalogConnection()
+}

@@ -40,6 +40,8 @@ var ErrorEmails       []string
 
 var Resources         map[string]int
 
+var RMAN              string
+
 // Local functions
 
 func init() {
@@ -58,6 +60,9 @@ func init() {
 
 func removeOldFiles ( dirName string, fileFilter string , daysOld int ) {
 	logger.Info("Deleting old files ...")
+	logger.Infof("Directory   -> %s", dirName)
+	logger.Infof("File filter -> %s", fileFilter)
+	logger.Infof("Older than  -> %d", daysOld)
 
 	fileList := utils.FindFiles(dirName, fileFilter, daysOld)
 
@@ -163,8 +168,6 @@ func SetEnvironment ( database string ) {
 
 				// First check for anything specified in the file 
 			
-				config.SetConfig("", "TargetConnection")
-
 				if strings.Contains(config.ConfigValues["TargetConnection"],"@") {
 					logger.Trace("Getting database name from target connection in config file")
 
@@ -196,14 +199,15 @@ func SetEnvironment ( database string ) {
 	os.Unsetenv("TWO_TASK")
 	logger.Trace("Unset TWO_TASK")
 
+	// Set all the config items
+
+	config.SetAllConfig(setup.Database)
 
 	// See if we can find Oracle Home in the OraTabPath string
 
 	var oracleHome string
 
 	// Now we have the database name examine the OraTabPath to see if there are any overrides
-
-	config.SetConfig(setup.Database, "OraTabPath")
 
 	logger.Tracef("Looping around the OraTabPath %s", config.ConfigValues["OraTabPath"])
 
@@ -244,20 +248,13 @@ func SetEnvironment ( database string ) {
 
 	// Now check it is a valid ORACLE_HOME containing both sqlplus and rman
 
-	commandSQLPLUS := strings.Join( [] string{ "sqlplus", setup.ExecutableSuffix }, "" )
-	commandRMAN    := strings.Join( [] string{ "rman"   , setup.ExecutableSuffix }, "" )
+	RMAN = strings.Join( [] string{ "rman"   , setup.ExecutableSuffix }, "" )
 
-	commandSQLPLUS = filepath.Join(  oracleHome, "bin", commandSQLPLUS )
-	commandRMAN    = filepath.Join(  oracleHome, "bin", commandRMAN )
+	RMAN = filepath.Join(  oracleHome, "bin", RMAN )
 
-	logger.Tracef("Checking for SQLPLUS executable - %s", commandSQLPLUS)
-	if _, err := os.Stat(commandSQLPLUS); err != nil {
-		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandSQLPLUS);
-	}
-
-	logger.Tracef("Checking for RMAN executable - %s", commandRMAN)
-	if _, err := os.Stat(commandRMAN); err != nil {
-		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, commandRMAN);
+	logger.Tracef("Checking for RMAN executable - %s", RMAN)
+	if _, err := os.Stat(RMAN); err != nil {
+		logger.Errorf("ORACLE_HOME %s does not contain command %s", oracleHome, RMAN);
 	}
 
 	logger.Infof("ORACLE_HOME set to %s", oracleHome)
@@ -368,7 +365,7 @@ func RenameLog () {
 
 	setup.SetLogFileName(newLogFileName)
 
-	logger.RenameLog(setup.OldLogFileName, setup.LogFileName, setup.LogConfigFileName)
+	setup.RenameLog(setup.OldLogFileName, setup.LogFileName)
 
 	setup.SetLogMoved(true)
 
@@ -388,7 +385,6 @@ func Cleanup() {
 		resource.ReleaseResources(setup.ResourceObtainedFileName)
 	}
 
-	config.SetConfig(setup.Database, "LogKeepTime")
 	logKeepTime, _ := strconv.Atoi(config.ConfigValues["LogKeepTime"])
 
 	regEx := strings.Join( []string { "^", setup.BaseName, "_", "[0-9]+\\.log$"}, "")

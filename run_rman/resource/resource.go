@@ -329,8 +329,6 @@ func GetResources ( resources map[string]int ) {
 
 	resourceCount := 0
 
-	config.SetConfig(setup.Database, "CheckResourceMins")
-
 	checkResourceMins, _ := strconv.Atoi(config.ConfigValues["CheckResourceMins"])
 
 	for resourceName, resourceValue := range resources {

@@ -2,6 +2,7 @@ package logger
 
 // standard imports
 
+import "bufio"
 import "os"
 import "path/filepath"
 import "runtime"
@@ -12,6 +13,14 @@ import "github.com/daviesluke/romana/rlog"
 
 // Local functions
 
+func info(message string) {
+	rlog.Info(message)
+}
+
+func infof(messageFormat string, message ...interface{}) {
+	rlog.Infof(messageFormat, message)
+}
+
 func trace2(message string) {
 	rlog.Trace(2, message)
 }
@@ -19,6 +28,7 @@ func trace2(message string) {
 func tracef2(messageFormat string, message ...interface{}) {
 	rlog.Tracef(2, messageFormat, message...)
 }
+
 
 func getFunctionName() string {
         var callingFuncName string
@@ -288,4 +298,37 @@ func RenameLog(oldLogFileName string , newLogFileName string, logConfigFileName 
 	setConfFile(logConfigFileName)
 
 	Info("Process complete")
+}
+
+func CopyFileToLog(title string, fileName string, logConfigFileName string) {
+	Debug("Copying file content to log ...")
+
+	// Using local functiont to not print function calls
+
+	info(title)
+
+	// Turn off some output logging
+	
+	os.Setenv("RLOG_LOG_NOTIME","yes")
+	rlog.UpdateEnv()
+
+	Debug("Not logging time now")
+
+	if file, err := os.Open(fileName); err == nil {
+		fileScanner := bufio.NewScanner(file)
+
+		for fileScanner.Scan() {
+			info(fileScanner.Text())
+		}
+
+		file.Close()
+	} else {
+		Errorf("Unable to open file %s - %s", fileName, err)
+	}
+
+	os.Unsetenv("RLOG_LOG_NOTIME")
+	rlog.UpdateEnv()
+	setConfFile(logConfigFileName)
+	
+	Debug("Process complete")
 }

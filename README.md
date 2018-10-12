@@ -43,12 +43,12 @@ Oracle Setup
 
 1) Set up oci8.pc file with following contents - changing ORACLE_HOME and version as required
 
-ORACLE_HOME=/u01/app/oracle/product/18.0.0.0/db1
-Name: oci8
-Description: Oracle Call Interface
-Version: 18.0
-Cflags: -I${ORACLE_HOME}/rdbms/public
-Libs: -L${ORACLE_HOME}/lib -Wl,-rpath,${ORACLE_HOME}/lib -lclntsh
+ ORACLE_HOME=/u01/app/oracle/product/18.0.0.0/db1
+ Name: oci8
+ Description: Oracle Call Interface
+ Version: 18.0
+ Cflags: -I${ORACLE_HOME}/rdbms/public
+ Libs: -L${ORACLE_HOME}/lib -Wl,-rpath,${ORACLE_HOME}/lib -lclntsh
 
 2) Set env variable PKG_CONFIG_PATH to directory containing the oci8.pc file
 3) go get daviesluke/mattn/go-oci8

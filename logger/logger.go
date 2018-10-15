@@ -3,6 +3,7 @@ package logger
 // standard imports
 
 import "bufio"
+import "io"
 import "os"
 import "path/filepath"
 import "runtime"
@@ -12,6 +13,32 @@ import "runtime"
 import "github.com/daviesluke/romana/rlog"
 
 // Local functions
+
+func copyLog(oldLog, newLog string) {
+	trace2("Copying files ...")
+
+	old, err := os.Open(oldLog)
+	if err != nil {
+		Errorf("Unable to open log file %s for reading", oldLog)
+	}
+
+	defer old.Close()
+
+	new, err := os.OpenFile(newLog, os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		Errorf("Unable to open log file %s for writing", newLog)
+	}
+
+	defer new.Close()
+
+	if _, err := io.Copy(new,old); err != nil {
+		Errorf("Unable to write file %s", newLog)
+	}
+
+	new.Sync()
+
+	trace2("File copied")
+}
 
 func info(message string) {
 	rlog.Info(message)
@@ -286,8 +313,13 @@ func RenameLog(oldLogFileName string , newLogFileName string, logConfigFileName 
 
 	// File should be closed - ready to rename
 
-	if err := os.Rename(oldLogFileName, newLogFileName ); err != nil {
-		Errorf("Unable to rename the file - %s", err)
+	// Cannot use Rename as may be on different filesystems so copy the log
+	copyLog(oldLogFileName, newLogFileName )
+
+	// So now need to remove old log
+
+	if err := os.Remove(oldLogFileName); err != nil {
+		Errorf("Unable to remove old log file %s", oldLogFileName)
 	}
 
 	// Turn on output

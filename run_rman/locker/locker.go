@@ -41,7 +41,7 @@ func checkLock( lockFileName string , lockName string , timeOutMins int ) {
 		lockFile.Close()
 		logger.Debug("Closed the file")
 
-		cleanLockFile(lockFileName, lockName)
+		CleanLockFile(lockFileName, lockName)
 
 		lockCounter := 0
 		logger.Debug("Initialized lock counter to zero")
@@ -103,93 +103,6 @@ func checkLock( lockFileName string , lockName string , timeOutMins int ) {
 	logger.Info("Process complete")
 }
 
-func cleanLockFile(lockFileName string, lockName string) {
-	logger.Info("Cleaning lock file of dead processes ...")
-
-	var lockPIDS []string
-
-	lockCount := 0
-
-	if lockFile , err := os.Open(lockFileName); err == nil {
-		lockScanner := bufio.NewScanner(lockFile)
-
-		for lockScanner.Scan() {
-			variableTokens := strings.SplitN(lockScanner.Text(), " ", 2)
-
-			lockPID       := variableTokens[0]
-			ilockPID, _   := strconv.Atoi(variableTokens[0])
-			fileLockName := variableTokens[1]
-
-			if fileLockName == lockName {
-				logger.Debugf("Found PID with lock name %s. Checking PID %d is still alive ...", fileLockName, ilockPID)
-
-				if pidAlive, pidIsName := utils.CheckProcess(ilockPID, setup.BaseName); pidAlive {
-					if pidIsName {
-						logger.Infof("Process %d is running %s.  Valid entry", ilockPID, setup.BaseName)
-					} else {
-						logger.Warnf("Running process %d is not running %s.  Invalid entry. Removing ...", ilockPID, setup.BaseName)
-
-						lockPIDS = append(lockPIDS,lockPID)
-						lockCount++
-					}
-				} else {
-					logger.Warnf("Old PID %d found in lock file and is no longer running. Removing ...", ilockPID)
-
-					lockPIDS = append(lockPIDS,lockPID)
-					lockCount++
-				}
-			} else {
-				logger.Debugf("Found PID %d for lock name %s", ilockPID, fileLockName)
-			}
-		}
-
-		lockFile.Close()
-		logger.Debug("Closed lock file")
-	} else {
-		logger.Infof("Lock file not longer present")
-	}
-
-	// Remove any PIDs found
-
-	for lockCounter := 0; lockCounter < lockCount; lockCounter++ {
-		logger.Debugf("Removing %s from lock file", lockPIDS[lockCounter])
-		RemoveLockEntry(lockFileName, lockPIDS[lockCounter])
-	}
-
-	logger.Info("Process complete")
-}
-
-func addLockEntry(lockFileName, pid, lockName string) {
-	logger.Info("Adding lock entry ...")
-
-	// To write the file - take a real lock
-	
-	filelock.LockFile(lockFileName)
-
-	if lockFile, err := os.OpenFile(lockFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600); err == nil {
-		writeString := strings.Join( []string{ pid, " ", lockName }, "")
-	
-		if _, err := lockFile.WriteString(writeString+"\n"); err != nil {
-			filelock.UnlockFile(lockFileName)
-			logger.Errorf("Unable to write to lockfile %s", lockFileName)
-		} else {
-			logger.Infof("Added entry %s to lock file", writeString)
-		}
-
-		lockFile.Close()
-		logger.Debug("Closed lock file")
-	} else {
-		filelock.UnlockFile(lockFileName)
-		logger.Errorf("Unable to open file %s", lockFileName)
-	}
-		
-	// Unlock the file
-
-	filelock.UnlockFile(lockFileName)
-
-	logger.Info("Process complete")
-}
-
 
 // Global functions
 
@@ -205,7 +118,7 @@ func LockProcess (lockName, database string) {
 
 		// If we get to here then add the entry 
 
-		addLockEntry(setup.LockFileName, setup.CurrentPID,  lockName)
+		AddLockEntry(setup.LockFileName, setup.CurrentPID,  lockName)
 	} else {
 		logger.Info("No lock string provided. No locking necessary")
 	}
@@ -220,7 +133,7 @@ func RemoveLockEntry(lockFileName string, lockPID string) {
 
 	// To write the file - take a real lock
 	
-	filelock.LockFile(lockFileName)
+	filelock.LockFile(lockFileName,1)
 	
 	newLockFileName := strings.Join( []string{ lockFileName, setup.CurrentPID }, ".")
 	logger.Debugf("New lock file name set to %s", newLockFileName)
@@ -302,3 +215,89 @@ func RemoveLockEntry(lockFileName string, lockPID string) {
 	logger.Info("Process complete")
 }
 
+func CleanLockFile(lockFileName string, lockName string) {
+	logger.Info("Cleaning lock file of dead processes ...")
+
+	var lockPIDS []string
+
+	lockCount := 0
+
+	if lockFile , err := os.Open(lockFileName); err == nil {
+		lockScanner := bufio.NewScanner(lockFile)
+
+		for lockScanner.Scan() {
+			variableTokens := strings.SplitN(lockScanner.Text(), " ", 2)
+
+			lockPID       := variableTokens[0]
+			ilockPID, _   := strconv.Atoi(variableTokens[0])
+			fileLockName := variableTokens[1]
+
+			if fileLockName == lockName {
+				logger.Debugf("Found PID with lock name %s. Checking PID %d is still alive ...", fileLockName, ilockPID)
+
+				if pidAlive, pidIsName := utils.CheckProcess(ilockPID, setup.BaseName); pidAlive {
+					if pidIsName {
+						logger.Infof("Process %d is running %s.  Valid entry", ilockPID, setup.BaseName)
+					} else {
+						logger.Warnf("Running process %d is not running %s.  Invalid entry. Removing ...", ilockPID, setup.BaseName)
+
+						lockPIDS = append(lockPIDS,lockPID)
+						lockCount++
+					}
+				} else {
+					logger.Warnf("Old PID %d found in lock file and is no longer running. Removing ...", ilockPID)
+
+					lockPIDS = append(lockPIDS,lockPID)
+					lockCount++
+				}
+			} else {
+				logger.Debugf("Found PID %d for lock name %s", ilockPID, fileLockName)
+			}
+		}
+
+		lockFile.Close()
+		logger.Debug("Closed lock file")
+	} else {
+		logger.Infof("Lock file not longer present")
+	}
+
+	// Remove any PIDs found
+
+	for lockCounter := 0; lockCounter < lockCount; lockCounter++ {
+		logger.Debugf("Removing %s from lock file", lockPIDS[lockCounter])
+		RemoveLockEntry(lockFileName, lockPIDS[lockCounter])
+	}
+
+	logger.Info("Process complete")
+}
+
+func AddLockEntry(lockFileName, pid, lockName string) {
+	logger.Info("Adding lock entry ...")
+
+	// To write the file - take a real lock
+	
+	filelock.LockFile(lockFileName,1)
+
+	if lockFile, err := os.OpenFile(lockFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600); err == nil {
+		writeString := strings.Join( []string{ pid, " ", lockName }, "")
+	
+		if _, err := lockFile.WriteString(writeString+"\n"); err != nil {
+			filelock.UnlockFile(lockFileName)
+			logger.Errorf("Unable to write to lockfile %s", lockFileName)
+		} else {
+			logger.Infof("Added entry %s to lock file", writeString)
+		}
+
+		lockFile.Close()
+		logger.Debug("Closed lock file")
+	} else {
+		filelock.UnlockFile(lockFileName)
+		logger.Errorf("Unable to open file %s", lockFileName)
+	}
+		
+	// Unlock the file
+
+	filelock.UnlockFile(lockFileName)
+
+	logger.Info("Process complete")
+}

@@ -2,22 +2,28 @@ package rman
 
 // Standard imports
 
+import "bufio"
+import "fmt"
 import "os"
 import "os/exec"
 import "path/filepath"
+import "strconv"
 import "strings"
 
 // Local imports
 
+import "github.com/daviesluke/filelock"
 import "github.com/daviesluke/logger"
 import "github.com/daviesluke/setup"
 import "github.com/daviesluke/utils"
 import "github.com/daviesluke/run_rman/config"
 import "github.com/daviesluke/run_rman/general"
+import "github.com/daviesluke/run_rman/locker"
 
 // local variables
 
-var ResetConfigFileName string
+var ResetConfigFileName     string
+var ResetConfigLockFileName string
 
 // local functions
 
@@ -226,11 +232,167 @@ func checkRMANErrors(logFileName string) bool {
 	return utils.FindInFile(logFileName,regEx,ignoreRegEx,regGroup) 
 }
 
+func saveConfig (newConfigFileName string) {
+	logger.Info("Saving RMAN configuration ...")
+
+	// Get the current RMAN settings 
+
+	getConfig(setup.TmpFileName)
+
+	// Write the reset file 
+
+	utils.CopyFileContents(setup.TmpFileName, newConfigFileName, "^CONFIGURE ")
+
+	// Remove the tmp file
+
+	if err := os.Remove(setup.TmpFileName); err != nil {
+		logger.Errorf("Unable to remove file %s", setup.TmpFileName)
+	}
+
+	logger.Info("Process complete")
+}
+
+func formatCommand ( oldCmdFile, newCmdFile string ) {
+	logger.Info("Adding in substitution strings to RMAN command file ...")
+
+	// Open up both files 
+
+	oldCmd, err := os.Open(oldCmdFile)
+	if err != nil {
+		logger.Errorf("Unable to open command file %s for reading", oldCmdFile)
+	}
+
+	defer oldCmd.Close()
+
+	newCmd, err := os.OpenFile(newCmdFile, os.O_CREATE | os.O_WRONLY , 0600 )
+	if err != nil {
+		logger.Errorf("Unable to open command file %s for writing", newCmdFile)
+	}
+
+	defer newCmd.Close()
+
+	// Set up the scanner 
+
+	oldScan := bufio.NewScanner(oldCmd)
+
+	for oldScan.Scan() {
+		// First replace the <format>
+
+		cmdLine := utils.ReplaceString(oldScan.Text(),"<format>",config.ConfigValues["FileFormat"])
+
+		// Next do the <parallel>
+
+		ParallelSlaves, err := strconv.Atoi(config.ConfigValues["ParallelSlaves"])
+		if err != nil {
+			logger.Errorf("ParallelSlaves configuration is not an integer")
+		}
+
+		parallelCmd := ""
+
+		for i := 0; i < ParallelSlaves; i++ {
+			singleCmd := fmt.Sprintf("ALLOCATE CHANNEL C%d DEVICE TYPE %s", i, config.ConfigValues["ChannelDevice"])
+
+			if i != 0 {
+				parallelCmd = strings.Join( []string{ parallelCmd, "\n" }, "" )
+			}
+
+			parallelCmd = strings.Join( []string{ parallelCmd, singleCmd }, "" )
+		}
+
+		cmdLine = utils.ReplaceString(cmdLine, "<parallel>", parallelCmd)
+
+		if _, err := newCmd.WriteString(cmdLine+"\n"); err != nil {
+			logger.Errorf("Unable to write to new command file %s", newCmdFile)
+		}
+	}
+
+	newCmd.Sync()
+	
+	logger.Info("Process complete")
+}
+
+func setConfig( oldConfig , newConfig string ) {
+	logger.Info("Setting RMAN configuration ...")
+
+	// Open new files to compare and write out any differences
+
+	new, err := os.Open(newConfig)
+	if err != nil {
+		logger.Errorf("Unable to open new config file %s", newConfig)
+	}
+
+	defer new.Close()
+
+	newCmdFile := strings.Join( []string{ newConfig, "run" }, "." )
+
+	out, err := os.OpenFile(newCmdFile, os.O_CREATE | os.O_WRONLY , 0600 )
+	if err != nil {
+		logger.Errorf("Unable to open new command file %s", newCmdFile)
+	}
+
+	newScan := bufio.NewScanner(new)
+
+	totalWritten := 0
+
+	for newScan.Scan() {
+		found := false
+
+		old, err := os.Open(oldConfig)
+		if err != nil {
+			logger.Errorf("Unable to open old config file %s", oldConfig)
+		}
+
+		oldScan := bufio.NewScanner(old)
+
+		for oldScan.Scan() {
+			if newScan.Text() == oldScan.Text() {
+				logger.Debugf("Found command %s in old file. Ignoring ...")
+				found = true
+				break
+			}
+		}
+
+		old.Close()
+
+		if ! found {
+			logger.Debugf("Writing config entry %s", newScan.Text())
+
+			if bytesWritten, err := out.WriteString(newScan.Text()+"\n"); err != nil {
+				logger.Errorf("Unable to write file %s", setup.TmpFileName)
+			} else {
+				totalWritten += bytesWritten
+			}
+		}
+	}
+
+	out.Sync()
+
+	out.Close()
+
+	// Now let's run what's left
+	
+	if totalWritten > 0 {
+		runRMAN(newCmdFile,setup.TmpFileName)
+	}
+
+	// No need for the files - command and output 
+
+	if err := os.Remove(newCmdFile); err != nil {
+		logger.Errorf("Unable to remove command file %s",newCmdFile)
+	}
+
+	if err := os.Remove(setup.TmpFileName); err != nil {
+		logger.Errorf("Unable to remove output file %s",setup.TmpFileName)
+	}
+
+	logger.Info("Process complete")
+}
+
 
 // Global functions
 
-func SaveConfig () {
-	logger.Info("Saving RMAN configuration ...")
+func CheckConfig () {
+	logger.Info("Checking RMAN configuration ...")
 
 	if config.ConfigValues["RMANConfig"] != "" {
 		// Check file exists
@@ -247,24 +409,61 @@ func SaveConfig () {
 		ResetConfigFileName = strings.Join( []string{ baseRMANConfigFileName, setup.CurrentPID, "reset"}, ".")
 		ResetConfigFileName = filepath.Join(baseRMANDir, ResetConfigFileName)
 
-		// Get the current RMAN settings 
+		ResetConfigLockFileName = strings.Join( []string{ baseRMANConfigFileName, "lock" }, ".")
+		ResetConfigLockFileName = filepath.Join(baseRMANDir, ResetConfigLockFileName)
+		
+		// Put a lock on the lock file during the save so that we have list in time order of when the file as used 
+		// Have to wait for longer than typical to allow for show all to run - allowing 20 secs
 
-		getConfig(setup.TmpFileName)
+		filelock.LockFile(config.ConfigValues["RMANConfig"],20)
 
-		// Write the reset file 
+		// See if file exists
+		_, err := os.Stat(ResetConfigLockFileName)
 
-		utils.CopyFileContents(setup.TmpFileName, ResetConfigFileName, "^CONFIGURE ")
+		locker.AddLockEntry(ResetConfigLockFileName,setup.CurrentPID,"0")
 
-		// Remove the tmp file
+		saveConfig(ResetConfigFileName)
 
-		if err := os.Remove(setup.TmpFileName); err != nil {
-			logger.Errorf("Unable to remove file %s", setup.TmpFileName)
+		filelock.UnlockFile(config.ConfigValues["RMANConfig"])
+
+		// If previous check satted that file did not exist then set the config to the new configj
+		if err != nil {
+			setConfig(ResetConfigFileName, config.ConfigValues["RMANConfig"])
 		}
-
-		// Add a lock on the config file so that only last process resets it
-
 	} else {
 		logger.Warn("Not using a custom RMAN config - relying upon control file entries")
+	}
+
+	logger.Info("Process complete")
+}
+
+func RunScript () {
+	logger.Info("Running main RMAN script ...")
+
+	// First have to substitute some variables
+
+	newCommandFile := strings.Join( []string{ config.RMANScript, setup.CurrentPID }, ".")
+
+	formatCommand(config.RMANScript, newCommandFile)
+
+	// Set the NLS_DATE_FORMAT for better output 
+
+	if config.ConfigValues["NLS_DATE_FORMAT"] == "" {
+		logger.Warnf("NLS_DATE_FORMAT is not set.  Time will not be recorded. This is not recommended")
+	}
+
+	os.Setenv("NLS_DATE_FORMAT", config.ConfigValues["NLS_DATE_FORMAT"])
+
+	runRMAN(newCommandFile,setup.TmpFileName)
+
+	// Do not need the log or command file
+
+	if err := os.Remove(newCommandFile); err != nil {
+		logger.Errorf("Unable to remove command file %s", newCommandFile)
+	}
+
+	if err := os.Remove(setup.TmpFileName); err != nil {
+		logger.Errorf("Unable to remove output file %s", setup.TmpFileName)
 	}
 
 	logger.Info("Process complete")

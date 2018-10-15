@@ -16,7 +16,7 @@ import "github.com/daviesluke/logger"
 
 // Local functions
 
-func LockFile (fileName string) {
+func LockFile (fileName string, lockDuration int) {
 	logger.Infof("Putting lock on file %s ...", fileName)
 
 	lockName := strings.Join( []string{ fileName, "locker" }, ".")
@@ -27,6 +27,18 @@ func LockFile (fileName string) {
 
 	var fdlock *os.File
 	var err    error
+
+	var sleepDuration time.Duration
+	var maxCount      int
+
+	// Set some sensible defaults for waiting
+	if lockDuration < 10 {
+		sleepDuration = 100 * time.Millisecond
+		maxCount      = 10  * lockDuration
+	} else {
+		sleepDuration = 1 * time.Second
+		maxCount      = lockDuration
+	}
 
         for {
 		// O_EXCL is the key - cannot create file if already there 
@@ -41,9 +53,9 @@ func LockFile (fileName string) {
 			loopCount++
 			logger.Tracef("Increment loop count, current value %d", loopCount)
 
-			if loopCount < 10 {
-				logger.Debug("Sleeping for 100 ms ...")
-				time.Sleep(100 * time.Millisecond)
+			if loopCount < maxCount {
+				logger.Debug("Sleeping ...")
+				time.Sleep(sleepDuration)
 			} else {
 				logger.Errorf("Unable to lock file for %d loops.  Exiting ...", loopCount)
 			}

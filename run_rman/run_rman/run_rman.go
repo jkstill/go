@@ -58,7 +58,10 @@ func main() {
 	oracle.CheckConnections()
 
 	// Get RMAN config
-	rman.SaveConfig()
+	rman.CheckConfig()
+
+	// Run RMAN command
+	rman.RunScript()
 
 	// Perform file removal, lock removal, resources cleanup needed
 	general.Cleanup()

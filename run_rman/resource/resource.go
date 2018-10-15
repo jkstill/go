@@ -79,7 +79,7 @@ func getResource ( resourceName string, resourceValue int, timeOutMins int) {
 
 		// Lock the usage file to prevent anyone else using the file
 
-		filelock.LockFile(setup.ResourceUsageFileName)
+		filelock.LockFile(setup.ResourceUsageFileName,1)
 	
 		// Check again as after the clean the file may have been removed
 
@@ -353,7 +353,7 @@ func ReleaseResources(resFileName string) {
 
 	// Lock the usage file to prevent anyone else using the file
 
-	filelock.LockFile(setup.ResourceUsageFileName)
+	filelock.LockFile(setup.ResourceUsageFileName,1)
 
 	// Open up the file used for cleaning
 

@@ -368,3 +368,19 @@ func FindInFile( fileName string, regEx string, ignoreRegEx string, regGroup int
 
 	return found
 }
+
+func ReplaceString( inString string, regEx string, replaceString string ) string {
+	logger.Debug("Replacing regex by string ...")
+
+	outString := inString
+
+	if re, err := regexp.Compile(regEx); err == nil {
+		outString = re.ReplaceAllString(inString, replaceString)
+	} else {
+		logger.Debugf("Invalid regular expression %s", regEx)
+	}
+
+	logger.Tracef("Returning %s", outString)
+
+	return outString
+}

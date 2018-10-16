@@ -290,7 +290,7 @@ func formatCommand ( oldCmdFile, newCmdFile string ) {
 		parallelCmd := ""
 
 		for i := 0; i < ParallelSlaves; i++ {
-			singleCmd := fmt.Sprintf("ALLOCATE CHANNEL C%d DEVICE TYPE %s", i, config.ConfigValues["ChannelDevice"])
+			singleCmd := fmt.Sprintf("ALLOCATE CHANNEL C%d DEVICE TYPE %s;", i, config.ConfigValues["ChannelDevice"])
 
 			if i != 0 {
 				parallelCmd = strings.Join( []string{ parallelCmd, "\n" }, "" )
@@ -313,6 +313,9 @@ func formatCommand ( oldCmdFile, newCmdFile string ) {
 
 func setConfig( oldConfig , newConfig string ) {
 	logger.Info("Setting RMAN configuration ...")
+
+	logger.Infof("Old configuration from -> %s", oldConfig)
+	logger.Infof("New configuration from -> %s", newConfig)
 
 	// Open new files to compare and write out any differences
 
@@ -373,21 +376,38 @@ func setConfig( oldConfig , newConfig string ) {
 	
 	if totalWritten > 0 {
 		runRMAN(newCmdFile,setup.TmpFileName)
+
+		// No need for the output 
+
+		if err := os.Remove(setup.TmpFileName); err != nil {
+			logger.Errorf("Unable to remove output file %s",setup.TmpFileName)
+		}
+	} else {
+		logger.Info("No changes to be made")
 	}
 
-	// No need for the files - command and output 
+	// May remove the command file
 
 	if err := os.Remove(newCmdFile); err != nil {
 		logger.Errorf("Unable to remove command file %s",newCmdFile)
 	}
 
-	if err := os.Remove(setup.TmpFileName); err != nil {
-		logger.Errorf("Unable to remove output file %s",setup.TmpFileName)
-	}
-
 	logger.Info("Process complete")
 }
 
+func removeLockEntry(lockFile string, lockPID string, resetFile string) {
+	logger.Debug("Removing lock entry and associated file ...")
+
+	locker.RemoveLockEntry(lockFile, lockPID)
+
+	// Remember to remove the associated file 
+
+	if err := os.Remove(resetFile); err != nil {
+		logger.Errorf("Unable to remove old config file %s", resetFile)
+	}
+
+	logger.Debug("Process complete")
+}
 
 // Global functions
 
@@ -464,6 +484,127 @@ func RunScript () {
 
 	if err := os.Remove(setup.TmpFileName); err != nil {
 		logger.Errorf("Unable to remove output file %s", setup.TmpFileName)
+	}
+
+	logger.Info("Process complete")
+}
+
+func ResetConfig () {
+	logger.Info("Reset the configuration ...")
+
+	// We should only reset the config if the process is the last one using that specific config file
+	// So we need to check the lock file and make sure that if we are the last one in the list 
+	// then we do the reset
+
+	if config.ConfigValues["RMANConfig"] != "" {
+		
+		// Set some variables
+
+		baseDir       := filepath.Dir(config.ConfigValues["RMANConfig"])
+		baseFileName  := filepath.Base(config.ConfigValues["RMANConfig"])
+
+		// First lets clear out any dead processes in the lock file (except the first entry)
+
+		lockPIDS := locker.CleanLockFile(ResetConfigLockFileName, "0", 1)
+
+		// Remove any associated files 
+
+		for _, lockPID := range lockPIDS {
+			resetFileName := strings.Join( []string{ baseFileName, lockPID, "reset"}, ".")
+			resetFileName = filepath.Join(baseDir, resetFileName)
+			
+			if _, err := os.Stat(resetFileName); err != nil {
+				logger.Warnf("File %s has already been removed", resetFileName)
+			} else {
+				if err := os.Remove(resetFileName); err != nil {
+					logger.Errorf("Unable to remove old config file %s", resetFileName)
+				}
+			}
+		}
+
+		// Now check the file - see how many process have started using this config file
+		// We only want to reset using the first config file saved
+
+		// Lock up the config to avoid anyone else using it whilst we are checking
+
+		filelock.LockFile(config.ConfigValues["RMANConfig"],20)
+
+		lineCount := utils.CountLines(ResetConfigLockFileName)
+		if lineCount == 0 { 
+			logger.Errorf("File %s is missing or empty. Something has gone wrong", ResetConfigLockFileName)
+		}
+
+		logger.Debugf("Found %d processes using the config file %s", lineCount, config.ConfigValues["RMANConfig"])
+
+		// Get the first PID in the file
+
+		lockPID := utils.LookupFile(ResetConfigLockFileName, "0", 2, 1, " ", 1)
+
+		// Check the number of processes using the config file
+
+		if lineCount == 1 { 
+			// If the line count is one then it must be our process so we can just set it back
+
+			if lockPID != setup.CurrentPID {
+				logger.Errorf("Only PID in the file is not our own.  Something has gone wrong. Exiting ...")
+			}
+
+			setConfig(config.ConfigValues["RMANConfig"], ResetConfigFileName)
+
+			// Get rid of our entry and files
+
+			removeLockEntry(ResetConfigLockFileName,setup.CurrentPID,ResetConfigFileName)
+		} else {
+			// This means there is our process and others
+			// First of all check the first process is not us
+
+			if lockPID != setup.CurrentPID {
+
+				ilockPID , err := strconv.Atoi(lockPID)
+				if err != nil {
+					logger.Errorf("Lock PID is corrupted %s, should be a number", lockPID)
+				}
+
+				logger.Debugf("Checking PID %d to see if is running ...", ilockPID)
+
+				pidAlive, pidIsName := utils.CheckProcess(ilockPID, setup.BaseName)
+
+				if pidAlive && pidIsName {
+					logger.Warnf("Process %d is still running. Will not reset the config", ilockPID)
+				} else {
+					// Pid is either dead or is not running this process 
+
+					if lineCount == 2 {
+						// If the line count for number of processes in lock file is 2
+						// then it must be our process and another.
+						// So we can remove the process and reset the config
+
+						logger.Warnf("Process %d is not running %s. Cleaning up config", ilockPID, setup.BaseName)
+
+						resetFileName := strings.Join( []string{ baseFileName, lockPID, "reset"}, ".")
+						resetFileName = filepath.Join(baseDir, resetFileName)
+						
+						setConfig(config.ConfigValues["RMANConfig"], resetFileName)
+
+						removeLockEntry(ResetConfigLockFileName,lockPID,resetFileName)
+					} 
+
+				}
+
+				// Then remove our entry as we do not need it here - some other process will reset the config
+
+				removeLockEntry(ResetConfigLockFileName,setup.CurrentPID,ResetConfigFileName)
+			} else {
+				// First PID is our PID but there are other processes using this config file 
+				// So we do not want to remove our entry - the remaining processes will do it
+
+				logger.Warn("Another process found using this configuration file. Leaving entry in lock file")
+			}
+		} 
+
+		// Unlock the main config file
+
+		filelock.UnlockFile(config.ConfigValues["RMANConfig"])
 	}
 
 	logger.Info("Process complete")

@@ -46,6 +46,7 @@ var ResourceFileName         string
 var ResourceUsageFileName    string
 var ResourceObtainedFileName string
 var TmpFileName              string
+var HistFileName             string
 
 // Misc variables 
 
@@ -215,6 +216,15 @@ func setRMANDir () {
 	RMANScriptDir = filepath.Join(BaseDir, "rman_scripts")
 }
 
+func setHistFile () {
+	//
+	// Setting History File Name
+	//
+
+	HistFileName := strings.Join([]string{BaseName, "time_hist"}, ".")
+	HistFileName  = filepath.Join(LogDir, HistFileName)
+}
+
 // Global Functions
 
 func Initialize() {
@@ -235,6 +245,8 @@ func Initialize() {
 	setResourceFile()
 
 	setRMANDir()
+
+	setHistFile()
 }
 
 func SetConfigFile (configFile string) {

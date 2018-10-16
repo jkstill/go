@@ -7,10 +7,21 @@ import "io"
 import "os"
 import "path/filepath"
 import "runtime"
+import "strconv"
+import "strings"
+import "time"
 
 // local imports
 
 import "github.com/daviesluke/romana/rlog"
+
+// Local variables
+
+var startTime   time.Time
+
+var database    string
+var historyFile string
+var scriptName  string
 
 // Local functions
 
@@ -115,6 +126,8 @@ func Error(message string) {
 
 	rlog.Errorf("%s - %s", callingFuncName, message)
 
+	WriteHistory("FAILURE")
+
 	os.Exit(1)
 }
 
@@ -127,6 +140,8 @@ func Critical(message string) {
 	rlog.UpdateEnv()
 
 	rlog.Criticalf("%s - %s", callingFuncName, message)
+
+	WriteHistory("FAILURE")
 
 	os.Exit(1)
 }
@@ -167,6 +182,8 @@ func Errorf(messageFormat string, message ...interface{}) {
 
 	rlog.Errorf(messageFormat, message...)
 
+	WriteHistory("FAILURE")
+
 	os.Exit(1)
 }
 
@@ -181,6 +198,8 @@ func Criticalf(messageFormat string, message ...interface{}) {
 	messageFormat = callingFuncName + " - " + messageFormat
 
 	rlog.Criticalf(messageFormat, message...)
+
+	WriteHistory("FAILURE")
 
 	os.Exit(2)
 }
@@ -363,4 +382,29 @@ func CopyFileToLog(title string, fileName string, logConfigFileName string) {
 	setConfFile(logConfigFileName)
 	
 	Debug("Process complete")
+}
+
+func SetStartTime () {
+	startTime = time.Now()
+}
+
+func SetHistoryVars ( fileName string, db string, funcName string ) {
+	database    = db
+	historyFile = fileName
+	scriptName  = funcName
+}
+	
+func WriteHistory (status string) {
+	if history, err := os.OpenFile(historyFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND , 0600); err == nil {
+		
+		timeDiff := time.Since(startTime)
+
+		writeString := strings.Join ( []string{ time.Now().Format("2006/02/01 15:04:05"), database, scriptName, strconv.FormatFloat(timeDiff.Seconds(),'f',0,64), status }, " ")
+
+		history.WriteString(writeString+"\n")
+
+		history.Sync()
+
+		history.Close()
+	}
 }

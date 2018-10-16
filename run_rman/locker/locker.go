@@ -41,7 +41,7 @@ func checkLock( lockFileName string , lockName string , timeOutMins int ) {
 		lockFile.Close()
 		logger.Debug("Closed the file")
 
-		CleanLockFile(lockFileName, lockName)
+		CleanLockFile(lockFileName, lockName, 0)
 
 		lockCounter := 0
 		logger.Debug("Initialized lock counter to zero")
@@ -215,12 +215,13 @@ func RemoveLockEntry(lockFileName string, lockPID string) {
 	logger.Info("Process complete")
 }
 
-func CleanLockFile(lockFileName string, lockName string) {
+func CleanLockFile(lockFileName string, lockName string, startingEntry int) []string {
 	logger.Info("Cleaning lock file of dead processes ...")
 
 	var lockPIDS []string
 
 	lockCount := 0
+	lineCount := 0
 
 	if lockFile , err := os.Open(lockFileName); err == nil {
 		lockScanner := bufio.NewScanner(lockFile)
@@ -229,30 +230,42 @@ func CleanLockFile(lockFileName string, lockName string) {
 			variableTokens := strings.SplitN(lockScanner.Text(), " ", 2)
 
 			lockPID       := variableTokens[0]
-			ilockPID, _   := strconv.Atoi(variableTokens[0])
-			fileLockName := variableTokens[1]
 
-			if fileLockName == lockName {
-				logger.Debugf("Found PID with lock name %s. Checking PID %d is still alive ...", fileLockName, ilockPID)
+			if lockPID != setup.CurrentPID {
+				ilockPID, _   := strconv.Atoi(variableTokens[0])
+				fileLockName := variableTokens[1]
 
-				if pidAlive, pidIsName := utils.CheckProcess(ilockPID, setup.BaseName); pidAlive {
-					if pidIsName {
-						logger.Infof("Process %d is running %s.  Valid entry", ilockPID, setup.BaseName)
+				if fileLockName == lockName {
+					logger.Debugf("Found PID with lock name %s. Checking PID %d is still alive ...", fileLockName, ilockPID)
+
+					if pidAlive, pidIsName := utils.CheckProcess(ilockPID, setup.BaseName); pidAlive {
+						if pidIsName {
+							logger.Infof("Process %d is running %s.  Valid entry", ilockPID, setup.BaseName)
+						} else {
+							if lineCount >= startingEntry {
+								logger.Warnf("Process %d is not running %s. Invalid entry. Removing ...", ilockPID, setup.BaseName)
+
+							
+								lockPIDS = append(lockPIDS,lockPID)
+								lockCount++
+							} else {
+								logger.Warnf("Process %d is not running %s. But is at line %d in lock file. Keeping ...", ilockPID, setup.BaseName)
+							}
+						}
 					} else {
-						logger.Warnf("Running process %d is not running %s.  Invalid entry. Removing ...", ilockPID, setup.BaseName)
+						logger.Warnf("Old PID %d found in lock file and is no longer running. Removing ...", ilockPID)
 
 						lockPIDS = append(lockPIDS,lockPID)
 						lockCount++
 					}
 				} else {
-					logger.Warnf("Old PID %d found in lock file and is no longer running. Removing ...", ilockPID)
-
-					lockPIDS = append(lockPIDS,lockPID)
-					lockCount++
+					logger.Debugf("Found PID %d for lock name %s", ilockPID, fileLockName)
 				}
 			} else {
-				logger.Debugf("Found PID %d for lock name %s", ilockPID, fileLockName)
+				logger.Debug("PID found is current PID.  Ignoring ...")
 			}
+
+			lineCount++
 		}
 
 		lockFile.Close()
@@ -269,6 +282,8 @@ func CleanLockFile(lockFileName string, lockName string) {
 	}
 
 	logger.Info("Process complete")
+
+	return lockPIDS
 }
 
 func AddLockEntry(lockFileName, pid, lockName string) {

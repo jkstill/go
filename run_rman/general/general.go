@@ -192,6 +192,8 @@ func SetEnvironment ( database string ) {
 
 	logger.Infof("Database set to %s", setup.Database)
 
+	logger.SetHistoryVars(setup.HistFileName, setup.Database, config.RMANScriptBase)
+
 	// Sets the correct ORACLE_SID environment 
 
 	os.Setenv("ORACLE_SID",setup.Database)
@@ -387,11 +389,25 @@ func Cleanup() {
 
 	logKeepTime, _ := strconv.Atoi(config.ConfigValues["LogKeepTime"])
 
+	// Removing old log files that have not yet been renamed
+
 	regEx := strings.Join( []string { "^", setup.BaseName, "_", "[0-9]+\\.log$"}, "")
 	removeOldFiles(setup.LogDir,regEx,logKeepTime)
 
+	// Removing old log files that have been renamed 
+
 	regEx = strings.Join( []string { "^", setup.BaseName, "_", setup.Database, "_", config.RMANScriptBase, "_([0-9]{14})+\\.log$"}, "")
 	removeOldFiles(setup.LogDir,regEx,logKeepTime)
+
+	// Removing old run files for config files (over 7 days old)
+
+	regEx = utils.ReplaceString(config.RMANScript,"\\.","\\\\.")
+	regEx = strings.Join( []string { "^", config.RMANScript , "\\.[0-9]+$" } , "")
+	removeOldFiles(setup.RMANScriptDir, regEx, 7)
+
+	// Removing old tmp files from previous runs (over 7 days old)
+	regEx = strings.Join( []string { "^", setup.BaseName, "\\.[0-9]+$" }, "")
+	removeOldFiles(setup.TmpDir, regEx, 7)
 	
 	logger.Infof("Process complete")
 }

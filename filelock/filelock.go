@@ -77,7 +77,7 @@ func UnlockFile(fileName string) {
 	logger.Debugf("Lock file name set to %s", lockName)
 
         if err := os.Remove(lockName); err == nil {
-		logger.Info("File unlocked")
+		logger.Debug("File unlocked")
         } else {
 		logger.Errorf("Unable to unlock the file.  Exiting ...")
 	}

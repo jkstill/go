@@ -384,3 +384,23 @@ func ReplaceString( inString string, regEx string, replaceString string ) string
 
 	return outString
 }
+
+func CountLines( fileName string ) int {
+	logger.Debugf("Count lines in file %s ...", fileName)
+
+	lineCount := 0
+
+	if file, err := os.Open(fileName); err == nil {
+		fileScanner := bufio.NewScanner(file)
+
+		for fileScanner.Scan() {
+			lineCount++
+		}
+
+		file.Close()
+	}
+
+	logger.Debugf("Returning %d", lineCount)
+	
+	return lineCount
+}

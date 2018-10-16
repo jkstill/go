@@ -22,6 +22,9 @@ const (
 )
 
 func main() {
+	// Grab the start time
+	logger.SetStartTime()
+
 	// Initialise some global variables
 	setup.Initialize()
 
@@ -63,8 +66,14 @@ func main() {
 	// Run RMAN command
 	rman.RunScript()
 
+	// Reset RMAN config
+	rman.ResetConfig()
+
 	// Perform file removal, lock removal, resources cleanup needed
 	general.Cleanup()
+
+	// Write the history file
+	logger.WriteHistory("SUCCESS")
 
 	logger.Info("Process complete")
 }

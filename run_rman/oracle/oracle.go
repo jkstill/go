@@ -43,10 +43,15 @@ func checkTargetConnection () {
 	if targetConnection == "/" {
 		targetConnection = "/@?as=sysdba" // sys/.@?as=sysdba
 	} else {
-		regEx := "^[Ss][Yy][Ss]/[^@]+$"
+		regEx := "^[Ss][Yy][Ss]/+$"
 
 		if utils.CheckRegEx(targetConnection,regEx) {
-			targetConnection = strings.Join( []string{ targetConnection , "as=sysdba"} , "@?")
+			regEx = "@"
+			if utils.CheckRegEx(targetConnection,regEx) {
+				targetConnection = strings.Join( []string{ targetConnection , "as=sysdba"} , "?")
+			} else {
+				targetConnection = strings.Join( []string{ targetConnection , "as=sysdba"} , "@?")
+			}
 		}
 	}
 

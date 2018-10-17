@@ -41,7 +41,7 @@ var RMANScriptBase    string
 // Global Functions
 
 func GetConfig ( configFileName string ) {
-	logger.Info("Reading configuration file ...")
+	logger.Infof("Reading configuration file %s ...", configFileName)
 
 	// 
 	// Initialize string map
@@ -65,8 +65,6 @@ func GetConfig ( configFileName string ) {
 		//
 		defer configFile.Close()
 		logger.Tracef("Deferred closing of file %s at end of function", configFileName)
-
-		logger.Infof("Processing config file %s ...", configFileName)
 
 		configScanner := bufio.NewScanner(configFile)
 		logger.Tracef("Set up scanner for config file. Entering loop ...")
@@ -143,7 +141,7 @@ func GetConfig ( configFileName string ) {
 }
 
 func SetRMANScript () {
-	logger.Info("Setting the RMAN script ...")
+	logger.Debug("Setting the RMAN script ...")
 
 	programArgs := flag.Args()
 
@@ -170,11 +168,11 @@ func SetRMANScript () {
 	RMANScriptBase = rmanBaseName[0]
 	logger.Debugf("RMAN Script Base variable set to %s",RMANScriptBase)
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetConfig ( database string , configName string ) {
-	logger.Info("Checking and setting config ...")
+	logger.Debugf("Checking and setting config entry %s for database %s ...", configName, database)
 
 	//
 	// If variable ends with Connection then careful with printing passwords
@@ -204,7 +202,7 @@ func SetConfig ( database string , configName string ) {
 	}
 
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetAllConfig ( database string ) {
@@ -213,6 +211,8 @@ func SetAllConfig ( database string ) {
 	for configName, _ := range ConfigValues {
 		SetConfig( database, configName)
 	}
+
+	logger.SetEmailServer(ConfigValues["EmailServer"])
 
 	logger.Info("Process complete")
 }

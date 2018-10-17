@@ -25,8 +25,6 @@ func checkLock( lockFileName string , lockName string , timeOutMins int ) {
 	var lockFile *os.File
 	var err      error
 
-	logger.Info("Locking process ...")
-
 	logger.Debugf("Lock file -> %s", lockFileName)
 	logger.Debugf("Lock Name -> %s", lockName)
 	logger.Debugf("Time Out  -> %d mins", timeOutMins)
@@ -100,7 +98,7 @@ func checkLock( lockFileName string , lockName string , timeOutMins int ) {
 		logger.Debugf("Unable to open file %s", lockFileName)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 
@@ -127,8 +125,7 @@ func LockProcess (lockName, database string) {
 }
 
 func RemoveLockEntry(lockFileName string, lockPID string) {
-	logger.Info("Removing lock entry ...")
-	logger.Infof("Lock Name : %s", lockFileName)
+	logger.Infof("Lock File : %s", lockFileName)
 	logger.Infof("Lock PID  : %s", lockPID)
 
 	// To write the file - take a real lock
@@ -190,6 +187,8 @@ func RemoveLockEntry(lockFileName string, lockPID string) {
 		logger.Debug("Renamed file")
 	}
 
+	logger.Info("Removed entry")
+
 	// Check size of remaining lock file and if 0 then remove it
 
 	if lockFileInfo, err := os.Stat(lockFileName); err == nil {
@@ -212,7 +211,7 @@ func RemoveLockEntry(lockFileName string, lockPID string) {
 
 	filelock.UnlockFile(lockFileName)
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func CleanLockFile(lockFileName string, lockName string, startingEntry int) []string {
@@ -287,7 +286,7 @@ func CleanLockFile(lockFileName string, lockName string, startingEntry int) []st
 }
 
 func AddLockEntry(lockFileName, pid, lockName string) {
-	logger.Info("Adding lock entry ...")
+	logger.Debug("Adding lock entry ...")
 
 	// To write the file - take a real lock
 	
@@ -314,5 +313,5 @@ func AddLockEntry(lockFileName, pid, lockName string) {
 
 	filelock.UnlockFile(lockFileName)
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }

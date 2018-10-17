@@ -52,7 +52,7 @@ func checkTargetConnection () {
 
 	checkConnection(targetConnection)
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func checkCatalogConnection () {
@@ -66,7 +66,7 @@ func checkCatalogConnection () {
 		checkConnection(catalogConnection)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 

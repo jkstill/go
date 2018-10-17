@@ -76,4 +76,7 @@ func main() {
 	logger.WriteHistory("SUCCESS")
 
 	logger.Info("Process complete")
+
+	// Send the log
+	logger.SendLog("SUCCESS")
 }

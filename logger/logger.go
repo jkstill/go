@@ -3,8 +3,11 @@ package logger
 // standard imports
 
 import "bufio"
+import "fmt"
 import "io"
+import "net/smtp"
 import "os"
+import "os/user"
 import "path/filepath"
 import "runtime"
 import "strconv"
@@ -22,6 +25,13 @@ var startTime   time.Time
 var database    string
 var historyFile string
 var scriptName  string
+
+var emailServer string
+
+var successEmails []string
+var errorEmails   []string
+
+var currentLog string
 
 // Local functions
 
@@ -101,6 +111,20 @@ func setConfFile (logConfigFileName string) {
 	}
 }
 
+func init () {
+
+	// Get default e-mail Server
+
+	var err error
+
+	emailServer, err = os.Hostname()
+	if err != nil {
+		tracef2("Unable to get hostname - %s", err)
+	}
+
+	emailServer = strings.Join( []string{ emailServer, "25" }, ":" )
+}
+
 
 // Global Functions
 
@@ -126,6 +150,8 @@ func Error(message string) {
 
 	rlog.Errorf("%s - %s", callingFuncName, message)
 
+	SendLog("FAILURE")
+
 	WriteHistory("FAILURE")
 
 	os.Exit(1)
@@ -140,6 +166,8 @@ func Critical(message string) {
 	rlog.UpdateEnv()
 
 	rlog.Criticalf("%s - %s", callingFuncName, message)
+
+	SendLog("FAILURE")
 
 	WriteHistory("FAILURE")
 
@@ -182,6 +210,8 @@ func Errorf(messageFormat string, message ...interface{}) {
 
 	rlog.Errorf(messageFormat, message...)
 
+	SendLog("FAILURE")
+
 	WriteHistory("FAILURE")
 
 	os.Exit(1)
@@ -198,6 +228,8 @@ func Criticalf(messageFormat string, message ...interface{}) {
 	messageFormat = callingFuncName + " - " + messageFormat
 
 	rlog.Criticalf(messageFormat, message...)
+
+	SendLog("FAILURE")
 
 	WriteHistory("FAILURE")
 
@@ -315,6 +347,8 @@ func Initialize(logDir string, logFileName string, logConfigFileName string) {
 	Debugf("Log file %s should now be open", logFileName)
 
 	setConfFile(logConfigFileName)
+
+	currentLog = logFileName
 }
 
 func RenameLog(oldLogFileName string , newLogFileName string, logConfigFileName string ) {
@@ -348,7 +382,9 @@ func RenameLog(oldLogFileName string , newLogFileName string, logConfigFileName 
 
 	setConfFile(logConfigFileName)
 
-	Info("Process complete")
+	currentLog = newLogFileName
+
+	Debug("Process complete")
 }
 
 func CopyFileToLog(title string, fileName string, logConfigFileName string) {
@@ -389,22 +425,148 @@ func SetStartTime () {
 }
 
 func SetHistoryVars ( fileName string, db string, funcName string ) {
-	database    = db
+	Trace("Setting history variables ...")
+
 	historyFile = fileName
+	database    = db
 	scriptName  = funcName
+
+	Tracef("Settings: History file %s, Database %s, scriptName %s", historyFile, database, scriptName)
+
+	Trace("Process complete")
 }
 	
 func WriteHistory (status string) {
+	Trace("Writing history file ...")
+
 	if history, err := os.OpenFile(historyFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND , 0600); err == nil {
 		
 		timeDiff := time.Since(startTime)
 
-		writeString := strings.Join ( []string{ time.Now().Format("2006/02/01 15:04:05"), database, scriptName, strconv.FormatFloat(timeDiff.Seconds(),'f',0,64), status }, " ")
+		writeString := strings.Join ( []string{ time.Now().Format("2006/02/01:15:04:05"), database, scriptName, strconv.FormatFloat(timeDiff.Seconds(),'f',0,64), status }, " ")
+	
+		Tracef("Writing - %s", writeString)
 
 		history.WriteString(writeString+"\n")
 
 		history.Sync()
 
 		history.Close()
+	} else {
+		Tracef("Unable to open file %s - %s", historyFile, err)
+	}
+
+	Trace("Process complete")
+}
+
+func SetEmailServer( serverString string ) {
+	Trace("Setting email server ...")
+
+	emailServer = serverString
+
+	Trace("Process complete")
+}
+
+func SetEmailRecipients( errorList []string, successList []string ) {
+	Trace("Setting the e-mail recipients ...")
+
+	errorEmails   = errorList
+	successEmails = successList
+
+	Trace("Process complete")
+}
+
+func SendLog (status string) {
+	// Check we have some recipients otherwise ignore
+
+	var recipientList []string
+	recipientCount := 0
+
+	if status == "ERROR" {
+		recipientList = errorEmails
+		recipientCount = len(recipientList)
+	} else if status == "SUCCESS" {
+		recipientList = successEmails
+		recipientCount = len(recipientList)
+	}
+		
+	if recipientCount != 0 {
+		
+		// Redirect output to stdout and close log file
+
+		rlog.SetOutput(os.Stdout)
+		trace2("Redirected output to stderr")
+
+		// Connect to the SMTP server.
+		emailConnect, err := smtp.Dial(emailServer)
+		if err != nil {
+			Errorf("Unable to connect to the mail server %s", emailServer)
+		}
+
+		// Set the sender 
+
+		userInfo, err := user.Current()
+		if err != nil {
+			Error("Unable to get the current user information")
+		}
+
+		hostName, err := os.Hostname()
+		if err != nil {
+			Error("Unable to get the host name")
+		}
+
+		sender := strings.Join( []string{ userInfo.Username , hostName }, "@" )
+
+		if err := emailConnect.Mail(sender); err != nil {
+			Errorf("Unable to set the sender address - %s", sender)
+		}
+
+		for _, receiver := range recipientList {
+			if err := emailConnect.Rcpt(receiver); err != nil {
+				Errorf("Unable to set the receiver address %s - %s", receiver)
+			}
+		}
+
+		// Open up the body writer
+
+		body, err := emailConnect.Data()
+		if err != nil {
+			Error("Unable to open writer for e-mail")
+		}
+
+		// Set up the header
+
+		baseName, err := os.Executable()
+		baseName = filepath.Base(baseName)
+		baseSplit := strings.SplitN(baseName,".",2)
+		baseName = baseSplit[0]
+
+		fmt.Fprintf(body, "Subject: %s ran with status %s\n", baseName, status)
+
+		// Send the log file 
+
+		if currentLogFile, err := os.Open(currentLog); err == nil {
+			logScanner := bufio.NewScanner(currentLogFile)
+
+			for logScanner.Scan() {
+				if _, err := fmt.Fprintf(body, "%s\n", logScanner.Text()); err != nil {
+					Error("Unable to write to e-mail body")
+				}
+			}
+
+			currentLogFile.Close()
+		} else {
+			Errorf("Unable to open log file %s", currentLog)
+		}
+
+		if err := body.Close(); err != nil {
+			Errorf("Unable to close writer - %s", err)
+		}
+
+		// now send the final quit to send the mail
+
+		if err := emailConnect.Quit(); err != nil {
+			Errorf("Unable to finalize e-mail - %s", err)
+		}
 	}
 }

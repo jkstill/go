@@ -67,11 +67,11 @@ func LockFile (fileName string, lockDuration int) {
 	logger.Debug("Closing locker file")
 	fdlock.Close()
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func UnlockFile(fileName string) {
-	logger.Info("Unlocking file ...")
+	logger.Infof("Unlocking file %s ...", fileName)
 
 	lockName := strings.Join( []string{ fileName, "locker" }, ".")
 	logger.Debugf("Lock file name set to %s", lockName)
@@ -82,5 +82,5 @@ func UnlockFile(fileName string) {
 		logger.Errorf("Unable to unlock the file.  Exiting ...")
 	}
 	
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }

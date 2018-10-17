@@ -131,7 +131,6 @@ func TrapSignal(runFunction fn) {
 }
 
 func LookupFile(searchFileName string, searchString string, searchIndex int, returnIndex int, delimiter string, returnCounter int) string {
-	logger.Info("Looking up string file")
 	logger.Infof("Searching for %s in position %d in file %s demilited by %s ...", searchString, searchIndex, searchFileName, delimiter)
 
 	logger.Tracef("Trying to open file %s ...", searchFileName)
@@ -194,9 +193,7 @@ func LookupFile(searchFileName string, searchString string, searchIndex int, ret
 }
 
 func CopyFileContents( fromFileName string , toFileName string , regEx string ) {
-        logger.Info("Copying file contents ...")
-
-	logger.Infof("Copying from %s to %s", fromFileName, toFileName)
+	logger.Debugf("Copying from %s to %s", fromFileName, toFileName)
 
         fromFile, err := os.Open(fromFileName)
         if err != nil {
@@ -245,10 +242,12 @@ func CopyFileContents( fromFileName string , toFileName string , regEx string ) 
 
         // Deferred files to close at end
 
-        logger.Info("Process complete")
+        logger.Debug("Process complete")
 }
 
 func CheckProcess (pid int, processName string) (bool, bool) {
+	logger.Debugf("Checking PID %d is running process %s", pid, processName)
+
 	pidAlive  := false
 	pidIsName := false
 
@@ -277,7 +276,7 @@ func CheckProcess (pid int, processName string) (bool, bool) {
 }
 
 func FindFiles ( dirPath string, fileRegEx string, daysOld int ) []string {
-	logger.Debug("Finding files in directory ...")
+	logger.Debugf("Finding files of name %s in directory %s older than %d days ...", fileRegEx, dirPath, daysOld)
 
 	var fileList []string
 

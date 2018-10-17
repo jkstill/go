@@ -50,7 +50,7 @@ func getConfig(outputFile string) {
 
 	checkDir(setup.RMANScriptDir)
 
-	commandFileName := strings.Join( []string{ setup.BaseName, setup.CurrentPID, "rman" }, ".")
+	commandFileName := strings.Join( []string{ setup.BaseName, setup.CurrentPID }, ".")
 	commandFileName = filepath.Join( setup.RMANScriptDir , commandFileName)
 	
 	// Write the command file
@@ -73,11 +73,11 @@ func getConfig(outputFile string) {
 		logger.Errorf("Unable to remove file %s", commandFileName)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func addConnections ( cmdFileName string, targetConn string, catalogConn string ) {
-	logger.Info("Adding connections to file ...")
+	logger.Infof("Adding connections to file %s ...", cmdFileName)
 
 	newCmdFileName := strings.Join( []string{ cmdFileName , "tmp" }, "." )
 	logger.Debugf("New command file %s", newCmdFileName)
@@ -115,7 +115,7 @@ func addConnections ( cmdFileName string, targetConn string, catalogConn string 
 		logger.Errorf("Unable to open file %s", newCmdFileName)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func runRMAN(cmdFile string, outFile string) {
@@ -160,8 +160,6 @@ func runRMAN(cmdFile string, outFile string) {
 	} else {
 		logger.Info("RMAN ran without error")
 	}
-
-	logger.Info("Process complete")
 }
 
 func checkRMANErrors(logFileName string) bool {
@@ -249,7 +247,7 @@ func saveConfig (newConfigFileName string) {
 		logger.Errorf("Unable to remove file %s", setup.TmpFileName)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func formatCommand ( oldCmdFile, newCmdFile string ) {
@@ -308,14 +306,12 @@ func formatCommand ( oldCmdFile, newCmdFile string ) {
 
 	newCmd.Sync()
 	
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func setConfig( oldConfig , newConfig string ) {
-	logger.Info("Setting RMAN configuration ...")
-
-	logger.Infof("Old configuration from -> %s", oldConfig)
-	logger.Infof("New configuration from -> %s", newConfig)
+	logger.Infof("Old configuration -> %s", oldConfig)
+	logger.Infof("New configuration -> %s", newConfig)
 
 	// Open new files to compare and write out any differences
 
@@ -349,7 +345,7 @@ func setConfig( oldConfig , newConfig string ) {
 
 		for oldScan.Scan() {
 			if newScan.Text() == oldScan.Text() {
-				logger.Debugf("Found command %s in old file. Ignoring ...")
+				logger.Debugf("Found command %s in old file. Ignoring ...", newScan.Text())
 				found = true
 				break
 			}
@@ -392,7 +388,7 @@ func setConfig( oldConfig , newConfig string ) {
 		logger.Errorf("Unable to remove command file %s",newCmdFile)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func removeLockEntry(lockFile string, lockPID string, resetFile string) {
@@ -454,7 +450,7 @@ func CheckConfig () {
 		logger.Warn("Not using a custom RMAN config - relying upon control file entries")
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func RunScript () {
@@ -607,5 +603,5 @@ func ResetConfig () {
 		filelock.UnlockFile(config.ConfigValues["RMANConfig"])
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }

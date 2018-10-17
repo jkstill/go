@@ -23,8 +23,6 @@ import "github.com/daviesluke/run_rman/config"
 // Local functions
 
 func getResource ( resourceName string, resourceValue int, timeOutMins int) {
-	logger.Info("Allocating resource ...")
-
 	logger.Infof("Resource Name  : %s", resourceName)
 	logger.Infof("Resource Value : %d", resourceValue)
 	logger.Infof("Time out       : %d mins", timeOutMins)
@@ -156,11 +154,11 @@ func getResource ( resourceName string, resourceValue int, timeOutMins int) {
 		}
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func addResource(resourceName string, resourceValue int) {
-	logger.Info("Writing resource file ...")
+	logger.Infof("Recording resource %s used %d units ...", resourceName, resourceValue)
 
 	// File is already locked when reading and adding entries so do not need to lock again
 	// but if there is any error then perform an unlock first 
@@ -178,7 +176,7 @@ func addResource(resourceName string, resourceValue int) {
 			filelock.UnlockFile(setup.ResourceUsageFileName)
 			logger.Errorf("Unable to write to resource file %s", setup.ResourceUsageFileName)
 		} else {
-			logger.Infof("Added entry %s to resource file", writeString)
+			logger.Infof("Added entry %s to resource usage file", writeString)
 		}
 
 		resourceUsageFile.Close()
@@ -192,20 +190,18 @@ func addResource(resourceName string, resourceValue int) {
 			filelock.UnlockFile(setup.ResourceUsageFileName)
 			logger.Errorf("Unable to write to resource file %s", setup.ResourceObtainedFileName)
 		} else {
-			logger.Infof("Added entry %s to resource file", writeString)
+			logger.Infof("Added entry %s to resource obtained file", writeString)
 		}
 
 		resourceObtainedFile.Close()
 		logger.Debug("Closed resource usage file")
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func removeUsedResource(resString string) {
-	logger.Info("Removing used resource value ...")
-
-	logger.Infof("Resource %s", resString)
+	logger.Infof("Removing resource %s", resString)
 
 	// Create a temporary file 
 
@@ -273,7 +269,7 @@ func removeUsedResource(resString string) {
 		logger.Errorf("Unable to find file %s", setup.ResourceUsageFileName)
 	}
 	
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func cleanResources() {
@@ -296,28 +292,33 @@ func cleanResources() {
 		partString := strings.Split(fileName,".")
 		pidString  := partString[len(partString)-1]
 
-		pid , err := strconv.Atoi(pidString)
-		if err != nil {
-			logger.Errorf("Unable to convert %s to a number", pidString)
-		}
+		if pidString != setup.CurrentPID {
 
-		// Check that process is not currently running
-		
-		if pidAlive, pidIsName := utils.CheckProcess(pid, setup.BaseName); pidAlive {
-			if pidIsName {
-				logger.Infof("Live file %s found.  Ignoring ...", fileName)
-				continue
-			} else {
-				logger.Warnf("Found running PID %d but not %s.  Releasing resources ...", pid, setup.BaseName)
+			pid , err := strconv.Atoi(pidString)
+			if err != nil {
+				logger.Errorf("Unable to convert %s to a number", pidString)
 			}
-		} else {
-			logger.Warnf("Found old PID %d not currently running. Releasing resources ...", pid)
-		}
+
+			// Check that process is not currently running
+			
+			if pidAlive, pidIsName := utils.CheckProcess(pid, setup.BaseName); pidAlive {
+				if pidIsName {
+					logger.Infof("Live file %s found.  Ignoring ...", fileName)
+					continue
+				} else {
+					logger.Warnf("Found running PID %d but not %s.  Releasing resources ...", pid, setup.BaseName)
+				}
+			} else {
+				logger.Warnf("Found old PID %d not currently running. Releasing resources ...", pid)
+			}
 					
-		ReleaseResources(fileName)
+			ReleaseResources(fileName)
+		} else {
+			logger.Debug("File found is from current PID. Ignoring ...")
+		}
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 // Global functions

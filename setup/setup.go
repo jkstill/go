@@ -214,6 +214,8 @@ func setRMANDir () {
 	//
 
 	RMANScriptDir = filepath.Join(BaseDir, "rman_scripts")
+
+	logger.Tracef("RMAN Script directory set to %s", RMANScriptDir)
 }
 
 func setHistFile () {
@@ -221,8 +223,10 @@ func setHistFile () {
 	// Setting History File Name
 	//
 
-	HistFileName := strings.Join([]string{BaseName, "time_hist"}, ".")
-	HistFileName  = filepath.Join(LogDir, HistFileName)
+	HistFileName = strings.Join([]string{BaseName, "time_hist"}, ".")
+	HistFileName = filepath.Join(LogDir, HistFileName)
+
+	logger.Tracef("History file set to %s", HistFileName)
 }
 
 // Global Functions
@@ -250,7 +254,7 @@ func Initialize() {
 }
 
 func SetConfigFile (configFile string) {
-	logger.Info("Switching config file to new value ...")
+	logger.Infof("Switching config file to new value %s ...", configFile)
 
 	OldConfigFileName = ConfigFileName
 	logger.Tracef("Set old config file name to %s", OldConfigFileName)
@@ -258,11 +262,11 @@ func SetConfigFile (configFile string) {
 	ConfigFileName = configFile
 	logger.Tracef("Set new config file name to %s", ConfigFileName)
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetLogDir (logDir string) {
-	logger.Info("Switching log directory to new value ...")
+	logger.Infof("Switching log directory to new value %s ...", logDir)
 
 	OldLogDir = LogDir
 	logger.Tracef("Set old log directory name to %s", OldLogDir)
@@ -275,11 +279,11 @@ func SetLogDir (logDir string) {
 	
 	SetLogFileName(filepath.Join(LogDir, logFile ))
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetLogFileName (logFile string) {
-	logger.Info("Switching log file to new value ...")
+	logger.Infof("Switching log file to new value %s ...", logFile)
 
 	if LogMoved {
 		OldLogFileName = LogFileName
@@ -293,15 +297,15 @@ func SetLogFileName (logFile string) {
 
 	LogMoved = false;
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetDatabase (database string) {
-	logger.Info("Setting database name ...")
+	logger.Infof("Setting database name %s ...", database)
 
 	Database = database
 
-	logger.Infof("Database name set to %s", Database)
+	logger.Debugf("Database name set to %s", Database)
 }
 
 func SetResource (resource string) {
@@ -343,7 +347,7 @@ func SetResource (resource string) {
 		logger.Infof("Resource %s set to %d", resourceName, resourceValue)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetEmail (email string) {
@@ -367,7 +371,7 @@ func SetEmail (email string) {
 		logger.Trace("Error E-mail already set")
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetErrorEmail (email string) {
@@ -380,16 +384,16 @@ func SetErrorEmail (email string) {
 		logger.Infof("Error E-mail set to %s", emailAddress)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetLogMoved ( logMoved bool ) {
-	logger.Info("Setting LogMoved bool ...")
+	logger.Debug("Registering log move ...")
 
 	LogMoved = logMoved
 	logger.Debugf("LogMoved set to %t", LogMoved)
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func RenameLog( oldLogfileName, newLogFileName string) {

@@ -141,24 +141,26 @@ func ValidateFlags () {
 
 	flag.Visit(visitor)
 
+	logger.SetEmailRecipients( ErrorEmails , SuccessEmails )
+
 	logger.Info("Process complete")
 }
 
 func SetEnvironment ( database string ) {
-	logger.Infof("Setting database environment ...")
+	logger.Info("Setting database environment ...")
 
 	// Checking for database name 
 
 	if database == "" {
 		// Check ORACLE_SID in the environment
 		
-		logger.Trace("Getting ORACLE_SID from environment")
+		logger.Info("Getting ORACLE_SID from environment ...")
 		setup.Database = os.Getenv("ORACLE_SID") 
 
 		if  setup.Database == "" {
 			// Check TWO_TASK to see if that is set (may have a env entry for that)
 
-			logger.Trace("Getting TWO_TASK from environment")
+			logger.Info("ORACLE_SID not set. Checking TWO_TASK from environment")
 			setup.Database = os.Getenv("TWO_TASK")
 
 			if setup.Database == "" {
@@ -167,6 +169,8 @@ func SetEnvironment ( database string ) {
 				//
 
 				// First check for anything specified in the file 
+
+				logger.Info("TWO_TASK not set. Trying to get database name from target connection parameter ...")
 			
 				if strings.Contains(config.ConfigValues["TargetConnection"],"@") {
 					logger.Trace("Getting database name from target connection in config file")
@@ -175,7 +179,7 @@ func SetEnvironment ( database string ) {
 
 					setup.Database = targetBreakdown[1]
 
-					logger.Debug("Database set from TargetConnection")
+					logger.Debugf("Database set to %s from TargetConnection", setup.Database)
 				} else {
 					logger.Errorf("Unable to find a database name.  Set in the command line option -d | -db.")
 				}
@@ -265,11 +269,11 @@ func SetEnvironment ( database string ) {
 }
 
 func SetLock (lock string) {
-	logger.Info("Setting lock name ...")
+	logger.Infof("Setting lock name to %s ...", lock)
 
 	LockName = lock
 
-	logger.Infof("Lock name set to %s", LockName)
+	logger.Debugf("Lock name set to %s", LockName)
 }
 
 func SetResource (resList string) {
@@ -311,7 +315,7 @@ func SetResource (resList string) {
 		logger.Infof("Resource %s set to %d", resourceName, resourceValue)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetEmail (email string) {
@@ -335,7 +339,7 @@ func SetEmail (email string) {
 		logger.Trace("Error E-mail already set")
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func SetErrorEmail (email string) {
@@ -348,7 +352,7 @@ func SetErrorEmail (email string) {
 		logger.Infof("Error E-mail set to %s", emailAddress)
 	}
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func RenameLog () {
@@ -371,7 +375,7 @@ func RenameLog () {
 
 	setup.SetLogMoved(true)
 
-	logger.Info("Process complete")
+	logger.Debug("Process complete")
 }
 
 func Cleanup() {
@@ -401,8 +405,8 @@ func Cleanup() {
 
 	// Removing old run files for config files (over 7 days old)
 
-	regEx = utils.ReplaceString(config.RMANScript,"\\.","\\\\.")
-	regEx = strings.Join( []string { "^", config.RMANScript , "\\.[0-9]+$" } , "")
+	regEx = utils.ReplaceString(config.RMANScript,"\\.","\\.")
+	regEx = strings.Join( []string { "^", regEx , "\\.[0-9]+$" } , "")
 	removeOldFiles(setup.RMANScriptDir, regEx, 7)
 
 	// Removing old tmp files from previous runs (over 7 days old)

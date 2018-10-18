@@ -108,7 +108,7 @@ func GetConfig ( configFileName string ) {
 			//
 
 			if utils.CheckRegEx(strings.TrimSpace(variableTokens[0]),".+Connection$") {
-				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), utils.RemovePassword(ConfigFileValues[strings.TrimSpace(variableTokens[0])]))
+				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), utils.RemovePassword(ConfigFileValues[strings.TrimSpace(variableTokens[0])],true))
 			} else {
 				logger.Infof("Set %s to %s", strings.TrimSpace(variableTokens[0]), ConfigFileValues[strings.TrimSpace(variableTokens[0])])
 			}
@@ -186,14 +186,14 @@ func SetConfig ( database string , configName string ) {
 	if ConfigFileValues[newConfigName] != "" {
 		ConfigValues[configName] = ConfigFileValues[newConfigName]
 		if isConnection {
-			logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, utils.RemovePassword(ConfigValues[configName]))
+			logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, utils.RemovePassword(ConfigValues[configName],false))
 		} else {
 			logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, ConfigValues[configName])
 		}
 	} else if ConfigFileValues[configName] != "" {
 		ConfigValues[configName] = ConfigFileValues[configName]
 		if isConnection {
-			logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, utils.RemovePassword(ConfigValues[configName]))
+			logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, utils.RemovePassword(ConfigValues[configName],false))
 		} else {
 			logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, ConfigValues[configName])
 		}

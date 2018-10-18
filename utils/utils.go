@@ -70,7 +70,7 @@ func CheckRegExGroup(checkString string, regEx string, ignoreRegEx string, regEx
 	return found
 }
 
-func RemovePassword(checkString string) string {
+func RemovePassword(checkString string, printWarn bool) string {
 	logger.Debug("Removing any passwords found ...")
 
 	var userName        string
@@ -78,7 +78,9 @@ func RemovePassword(checkString string) string {
 	logger.Trace("Checking string for passwords ...")
 
 	if CheckRegEx(checkString, ".+/[^@]+") {
-		logger.Warn("Password in connection string - consider using SEPS")
+		if printWarn {
+			logger.Warn("Password in connection string - consider using SEPS")
+		}
 
 		logger.Debug("Removing password for display ...")
 	}

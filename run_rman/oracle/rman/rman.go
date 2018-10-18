@@ -146,17 +146,19 @@ func runRMAN(cmdFile string, outFile string) {
 
 	// Now let's run it 
 
-	if err := cmd.Run(); err != nil {
-		logger.Errorf("RMAN command failed to run. See %s for details", outFile)
-	}
+	rmanErr := cmd.Run()
 
 	// Close output file
 	out.Close()
 
 	setup.CopyFileToLog("RMAN output", outFile)
 
+	if rmanErr != nil {
+		logger.Error("RMAN command failed to run. See log for details")
+	}
+
 	if checkRMANErrors(outFile) {
-		logger.Errorf("RMAN ran with errors. Check log %s for deatils", outFile)
+		logger.Error("RMAN ran with errors. Check log for deatils")
 	} else {
 		logger.Info("RMAN ran without error")
 	}
@@ -526,6 +528,9 @@ func ResetConfig () {
 		filelock.LockFile(config.ConfigValues["RMANConfig"],20)
 
 		lineCount := utils.CountLines(ResetConfigLockFileName)
+
+		logger.Debugf("%d lines found in file %s", lineCount, ResetConfigLockFileName)
+
 		if lineCount == 0 { 
 			logger.Errorf("File %s is missing or empty. Something has gone wrong", ResetConfigLockFileName)
 		}
@@ -535,6 +540,8 @@ func ResetConfig () {
 		// Get the first PID in the file
 
 		lockPID := utils.LookupFile(ResetConfigLockFileName, "0", 2, 1, " ", 1)
+
+		logger.Debugf("First PID in file is %s", lockPID)
 
 		// Check the number of processes using the config file
 
@@ -568,7 +575,7 @@ func ResetConfig () {
 				if pidAlive && pidIsName {
 					logger.Warnf("Process %d is still running. Will not reset the config", ilockPID)
 				} else {
-					// Pid is either dead or is not running this process 
+					logger.Debug("Pid is either dead or is not running this process")
 
 					if lineCount == 2 {
 						// If the line count for number of processes in lock file is 2
@@ -579,7 +586,7 @@ func ResetConfig () {
 
 						resetFileName := strings.Join( []string{ baseFileName, lockPID, "reset"}, ".")
 						resetFileName = filepath.Join(baseDir, resetFileName)
-						
+
 						setConfig(config.ConfigValues["RMANConfig"], resetFileName)
 
 						removeLockEntry(ResetConfigLockFileName,lockPID,resetFileName)

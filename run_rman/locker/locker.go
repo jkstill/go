@@ -185,26 +185,23 @@ func RemoveLockEntry(lockFileName string, lockPID string) {
 			logger.Errorf("Unable to move %s to %s", newLockFileName, lockFileName)
 		}
 		logger.Debug("Renamed file")
+	} else {
+		logger.Errorf("Unable to find new lock file %s", newLockFileName)
 	}
 
 	logger.Info("Removed entry")
 
 	// Check size of remaining lock file and if 0 then remove it
 
-	if lockFileInfo, err := os.Stat(lockFileName); err == nil {
-		logger.Debugf("Found file %s. Checking file size ...", lockFileName)
-		if lockFileInfo.Size() == 0 {
-			logger.Infof("Lock file now empty - removing ...")
-			if err := os.Remove(lockFileName); err != nil {
-				filelock.UnlockFile(lockFileName)
-				logger.Errorf("Unable to remove lock file %s", lockFileName)
-			}
-			logger.Debug("Successfully removed empty lock file")
-		} else {
-			logger.Debug("Lock file still contains entries.")
+	if fileWriteSize == 0 {
+		logger.Infof("Lock file now empty - removing ...")
+		if err := os.Remove(lockFileName); err != nil {
+			filelock.UnlockFile(lockFileName)
+			logger.Errorf("Unable to remove lock file %s", lockFileName)
 		}
+		logger.Debug("Successfully removed empty lock file")
 	} else {
-		logger.Errorf("Unable to find lock file %s", lockFileName)
+		logger.Debug("Lock file still contains entries.")
 	}
 	
 	// Unlock the file

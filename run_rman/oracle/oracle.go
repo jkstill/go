@@ -20,10 +20,12 @@ import _ "github.com/daviesluke/mattn/go-oci8"
 func checkConnection (connString string) {
 	logger.Debug("Checking connection ...")
 
+	logger.Debugf("Connection string -> %s", connString)
+
 	if db, err := sql.Open("oci8", connString); err == nil {
 
 		if err = db.Ping(); err != nil {
-			logger.Errorf("Unable to connect to database %s using %s", setup.Database, connString)
+			logger.Errorf("Unable to connect to database %s using %s", setup.Database, utils.RemovePassword(connString,false))
 		} else {
 			logger.Info("Successfully connected to the target database")
 		}
@@ -43,10 +45,13 @@ func checkTargetConnection () {
 	if targetConnection == "/" {
 		targetConnection = "/@?as=sysdba" // sys/.@?as=sysdba
 	} else {
-		regEx := "^[Ss][Yy][Ss]/+$"
+		// If starts with SYS then add as=sysdba
+		regEx := "^[Ss][Yy][Ss][@/].+$"
 
 		if utils.CheckRegEx(targetConnection,regEx) {
-			regEx = "@"
+			// Check if it has a connection part 
+			regEx = ".*@.*"
+
 			if utils.CheckRegEx(targetConnection,regEx) {
 				targetConnection = strings.Join( []string{ targetConnection , "as=sysdba"} , "?")
 			} else {

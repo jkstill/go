@@ -50,7 +50,7 @@ func checkTargetConnection () {
 
 		if utils.CheckRegEx(targetConnection,regEx) {
 			// Check if it has a connection part 
-			regEx = ".*@.*"
+			regEx = ".+@.+"
 
 			if utils.CheckRegEx(targetConnection,regEx) {
 				targetConnection = strings.Join( []string{ targetConnection , "as=sysdba"} , "?")

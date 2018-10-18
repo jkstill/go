@@ -172,7 +172,7 @@ func SetEnvironment ( database string ) {
 
 				logger.Info("TWO_TASK not set. Trying to get database name from target connection parameter ...")
 			
-				if strings.Contains(config.ConfigValues["TargetConnection"],"@") {
+				if strings.Contains(config.ConfigValues["TargetConnection"],".+@.+") {
 					logger.Trace("Getting database name from target connection in config file")
 
 					targetBreakdown := strings.SplitN(config.ConfigValues["TargetConnection"],"@",2)

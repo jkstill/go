@@ -181,6 +181,7 @@ func SetConfig ( database string , configName string ) {
 	isConnection := utils.CheckRegEx(configName,".+Connection$")
 
 	newConfigName := strings.Join( []string{ database, configName}, "_")
+
 	logger.Tracef("New config name set to %s", newConfigName)
 	
 	if ConfigFileValues[newConfigName] != "" {
@@ -200,7 +201,6 @@ func SetConfig ( database string , configName string ) {
 	} else {
 		logger.Infof("No changes made from default name for %s - Value %s", configName, ConfigValues[configName])
 	}
-
 
 	logger.Debug("Process complete")
 }

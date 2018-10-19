@@ -152,6 +152,14 @@ func SetRMANScript () {
 	RMANScript = programArgs[0]
 	logger.Tracef("RMAN script set to %s", RMANScript)
 
+	var err error
+
+	RMANScript, err = filepath.Abs(RMANScript)
+	if err != nil {
+		logger.Errorf("Unable to get absolute pathname for %s", programArgs[0])
+	}
+	logger.Tracef("Absolute name for RMAN script set to %s", RMANScript)
+
 	// Check that file exists
 
 	if _, err := os.Stat(RMANScript); err == nil {
@@ -184,14 +192,14 @@ func SetConfig ( database string , configName string ) {
 
 	logger.Tracef("New config name set to %s", newConfigName)
 	
-	if ConfigFileValues[newConfigName] != "" {
+	if _, keyExists := ConfigFileValues[newConfigName]; keyExists {
 		ConfigValues[configName] = ConfigFileValues[newConfigName]
 		if isConnection {
 			logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, utils.RemovePassword(ConfigValues[configName],false))
 		} else {
 			logger.Infof("Found config name %s in config file. Reset config name %s to %s", newConfigName, configName, ConfigValues[configName])
 		}
-	} else if ConfigFileValues[configName] != "" {
+	} else if _, keyExists := ConfigFileValues[configName]; keyExists {
 		ConfigValues[configName] = ConfigFileValues[configName]
 		if isConnection {
 			logger.Infof("Found config name %s in config file. Reset config name %s to %s", configName, configName, utils.RemovePassword(ConfigValues[configName],false))

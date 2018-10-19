@@ -88,11 +88,15 @@ func RemovePassword(checkString string, printWarn bool) string {
 	upTokens := strings.SplitN(checkString, "/", 2)
 	logger.Debugf("Split string using / delimiter into %d tokens.  Username is %s", len(upTokens), upTokens[0])
 
+	passWord := ""
+
 	userName = upTokens[0]
 	logger.Tracef("Username set to %s", userName)
 
-	passWord := upTokens[1]
-	logger.Trace("Password set")
+	if len(upTokens) != 1 {
+		passWord = upTokens[1]
+		logger.Trace("Password set")
+	}
 
 	if strings.Index(passWord,"@") != -1 {
 		logger.Debug("Password portion contains a TNS Alias")

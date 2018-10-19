@@ -326,16 +326,16 @@ func FindFiles ( dirPath string, fileRegEx string, daysOld int ) []string {
 					}
 				}
 			} else {
-				logger.Errorf("Unable to read directory %s", dirPath)
+				logger.Warnf("Unable to read directory %s", dirPath)
 			}
 
 			// Close directory
 			dir.Close()
 		} else {
-			logger.Errorf("Unable to open directory %s", dirPath)
+			logger.Warnf("Unable to open directory %s", dirPath)
 		}
 	} else {
-		logger.Errorf("%s is not a directory", dirPath)
+		logger.Warnf("%s is not a directory", dirPath)
 	}
 
 	return fileList

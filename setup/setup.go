@@ -53,7 +53,7 @@ var HistFileName             string
 var CurrentPID               string
 
 var DirDelimiter             string
-var OratabDelimiter          string
+var PathDelimiter            string
 var ExecutableSuffix         string
 
 var LogMoved          bool   = true
@@ -87,11 +87,11 @@ func setDelimiter () {
 
 	if runtime.GOOS == "windows" {
 		DirDelimiter="\\"
-		OratabDelimiter=";"
+		PathDelimiter=";"
 		ExecutableSuffix=".exe"
 	} else {
 		DirDelimiter="/"
-		OratabDelimiter=":"
+		PathDelimiter=":"
 		ExecutableSuffix=""
 	}
 

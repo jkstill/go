@@ -5,6 +5,7 @@ package general
 import "flag"
 import "os"
 import "path/filepath"
+import "runtime"
 import "strings"
 import "strconv"
 import "time"
@@ -219,14 +220,14 @@ func SetEnvironment ( database string ) {
 
 	logger.Tracef("Looping around the OraTabPath %s", config.ConfigValues["OraTabPath"])
 
-	for _, envFile := range strings.Split(config.ConfigValues["OraTabPath"],setup.OratabDelimiter) {
+	for _, envFile := range strings.Split(config.ConfigValues["OraTabPath"],setup.PathDelimiter) {
 
 		logger.Debugf("Checking database in file %s", envFile)
 
 		// Check file exists
 
 		if _, err := os.Stat(envFile); err == nil {
-			oracleHome = utils.LookupFile(envFile,setup.Database,1,2,setup.OratabDelimiter,1)
+			oracleHome = utils.LookupFile(envFile,setup.Database,1,2,setup.PathDelimiter,1)
 
 			if oracleHome != "" {
 				logger.Debug("Found entry in file. Breaking loop ...")
@@ -248,13 +249,25 @@ func SetEnvironment ( database string ) {
 			logger.Debug("Using ORACLE_HOME already set in environment")
 		}
 	} else {
-		// Now set the ORACLE_HOME
+		// Windows does not want ORACLE_HOME set - just make sure path is set correctly 
+		// Otherwise set the ORACLE_HOME
 
-		logger.Trace("Setting the ORACLE_HOME env variable")
-		os.Setenv("ORACLE_HOME",oracleHome)
+		if runtime.GOOS == "windows" {
+			logger.Trace("Setting the PATH env variable")
+		
+			ohPath  := filepath.Join(oracleHome,"bin")
+			exePath := os.Getenv("PATH")
+
+			exePath = strings.Join( []string{ ohPath , exePath }, setup.PathDelimiter )
+		
+			os.Setenv("PATH",exePath)
+		} else {
+			logger.Trace("Setting the ORACLE_HOME env variable")
+			os.Setenv("ORACLE_HOME",oracleHome)
+		}
 	}
 
-	// Now check it is a valid ORACLE_HOME containing both sqlplus and rman
+	// Now check it is a valid ORACLE_HOME containing rman
 
 	RMAN = strings.Join( [] string{ "rman"   , setup.ExecutableSuffix }, "" )
 

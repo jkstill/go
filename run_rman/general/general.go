@@ -114,7 +114,7 @@ func ValidateFlags () {
 				logger.Debugf("Error E-mail - %s validated", *errorEmail)
 				SetErrorEmail(*errorEmail)
 			} else {
-				logger.Errorf("Invalid error e-mail address list - %s", *errorEmail)
+				logger.Warnf("Invalid error e-mail address list - %s", *errorEmail)
 			}
 		} else if flagParam.Name == "email" || flagParam.Name == "E" {
 			logger.Info("Validating e-mail addresses ...")
@@ -122,7 +122,7 @@ func ValidateFlags () {
 				logger.Debugf("E-mail - %s validated", *email)
 				SetEmail(*email)
 			} else {
-				logger.Errorf("Invalid e-mail address list - %s", *email)
+				logger.Warnf("Invalid e-mail address list - %s", *email)
 			}
 		} else if flagParam.Name == "resource" || flagParam.Name == "r" {
 			logger.Info("Validating resources ...")

@@ -235,16 +235,13 @@ func CopyFileContents( fromFileName string , toFileName string , regEx string ) 
 				if _, err := toFile.WriteString(fromScanner.Text()+"\n"); err != nil {
 					logger.Errorf("Unable to write to file %s", toFileName)
 				}
+				toFile.Sync()
 				logger.Trace("Written to file")
 			} else {
 				logger.Trace("Ignored line")
 			}
 		}
 	}
-
-        // Flush anything out to disk
-
-        toFile.Sync()
 
         // Deferred files to close at end
 

@@ -45,7 +45,7 @@ func copyLog(oldLog, newLog string) {
 
 	defer old.Close()
 
-	new, err := os.OpenFile(newLog, os.O_WRONLY|os.O_CREATE, 0600)
+	new, err := os.OpenFile(newLog, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		Errorf("Unable to open log file %s for writing", newLog)
 	}

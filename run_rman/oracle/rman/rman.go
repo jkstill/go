@@ -82,7 +82,7 @@ func addConnections ( cmdFileName string, targetConn string, catalogConn string 
 	newCmdFileName := strings.Join( []string{ cmdFileName , "tmp" }, "." )
 	logger.Debugf("New command file %s", newCmdFileName)
 
-	if newCmdFile, err :=  os.OpenFile(newCmdFileName, os.O_CREATE | os.O_WRONLY , 0600 ); err == nil {
+	if newCmdFile, err :=  os.OpenFile(newCmdFileName, os.O_CREATE | os.O_WRONLY | os.O_TRUNC, 0600 ); err == nil {
 		// Write the connection strings
 
 		connString := strings.Join( []string{ "connect", "target", targetConn }, " ")
@@ -129,7 +129,7 @@ func runRMAN(cmdFile string, outFile string) {
 
 	// Open the output file to capture the stdout and stderr
 
-	out, err := os.OpenFile(outFile, os.O_CREATE | os.O_WRONLY , 0600 )
+	out, err := os.OpenFile(outFile, os.O_CREATE | os.O_WRONLY | os.O_TRUNC, 0600 )
 	if err != nil {
 		logger.Errorf("Unable to open RMAN output file %s", outFile) 
 	}
@@ -264,7 +264,7 @@ func formatCommand ( oldCmdFile, newCmdFile string ) {
 
 	defer oldCmd.Close()
 
-	newCmd, err := os.OpenFile(newCmdFile, os.O_CREATE | os.O_WRONLY , 0600 )
+	newCmd, err := os.OpenFile(newCmdFile, os.O_CREATE | os.O_WRONLY | os.O_TRUNC , 0600 )
 	if err != nil {
 		logger.Errorf("Unable to open command file %s for writing", newCmdFile)
 	}
@@ -326,7 +326,7 @@ func setConfig( oldConfig , newConfig string ) {
 
 	newCmdFile := strings.Join( []string{ newConfig, "run" }, "." )
 
-	out, err := os.OpenFile(newCmdFile, os.O_CREATE | os.O_WRONLY , 0600 )
+	out, err := os.OpenFile(newCmdFile, os.O_CREATE | os.O_WRONLY | os.O_TRUNC , 0600 )
 	if err != nil {
 		logger.Errorf("Unable to open new command file %s", newCmdFile)
 	}

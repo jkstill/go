@@ -51,5 +51,5 @@ Oracle Setup
 		Libs: -L${ORACLE_HOME}/lib -Wl,-rpath,${ORACLE_HOME}/lib -lclntsh
 
 2) Set env variable PKG_CONFIG_PATH to directory containing the oci8.pc file
-3) go get daviesluke/mattn/go-oci8
+3) go get github.com/daviesluke/mattn/go-oci8
 

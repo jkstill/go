@@ -55,6 +55,7 @@ var CurrentPID               string
 var DirDelimiter             string
 var PathDelimiter            string
 var ExecutableSuffix         string
+var NewLine                  string
 
 var LogMoved          bool   = true
 
@@ -89,10 +90,12 @@ func setDelimiter () {
 		DirDelimiter="\\"
 		PathDelimiter=";"
 		ExecutableSuffix=".exe"
+		NewLine="\r\n"
 	} else {
 		DirDelimiter="/"
 		PathDelimiter=":"
 		ExecutableSuffix=""
+		NewLine="\n"
 	}
 
 	logger.Tracef("Directory delimiter set to %s", DirDelimiter)

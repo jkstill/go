@@ -87,7 +87,7 @@ func addConnections ( cmdFileName string, targetConn string, catalogConn string 
 
 		connString := strings.Join( []string{ "connect", "target", targetConn }, " ")
 
-		if _, err := newCmdFile.WriteString(connString + "\n"); err != nil {
+		if _, err := newCmdFile.WriteString(connString + setup.NewLine); err != nil {
 			logger.Errorf("Unable to write target connection to file %s", newCmdFileName)
 		}
 

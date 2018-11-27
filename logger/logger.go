@@ -541,7 +541,9 @@ func SendLog (status string) {
 		baseSplit := strings.SplitN(baseName,".",2)
 		baseName = baseSplit[0]
 
-		fmt.Fprintf(body, "Subject: %s ran with status %s\n", baseName, status)
+		timeDiff := time.Since(startTime)
+
+		fmt.Fprintf(body, "Subject: %s for DB %s. Script %s. Completed with status %s in %0.2f hours\r\n\r\n", baseName, database, scriptName, status, timeDiff.Hours())
 
 		// Send the log file 
 

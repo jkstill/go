@@ -369,7 +369,7 @@ func SetEmail (email string) {
 
 	if len(ErrorEmails) == 0 {
 		logger.Trace("Error Email not yet set")
-		SetErrorEmail(email)
+		SetErrEmail(email)
 	} else {
 		logger.Trace("Error E-mail already set")
 	}
@@ -377,7 +377,7 @@ func SetEmail (email string) {
 	logger.Debug("Process complete")
 }
 
-func SetErrorEmail (email string) {
+func SetErrEmail (email string) {
 	logger.Info("Setting e-mail for errors ...")
 
 	ErrorEmails = strings.Split(email,";")

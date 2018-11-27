@@ -29,7 +29,7 @@ var ConfigValues = map[string]string {
 	"ParallelSlaves"    : "1",
 	"ChannelDevice"     : "DISK",
 	"FileFormat"        : "",
-	"RMANIgnoreErrors"  : "",
+	"RMANIgnoreCodes"   : "",
 	"EmailServer"       : "localhost:25",
 }
 

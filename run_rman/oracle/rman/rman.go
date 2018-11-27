@@ -157,15 +157,15 @@ func runRMAN(cmdFile string, outFile string) {
 		logger.Error("RMAN command failed to run. See log for details")
 	}
 
-	if checkRMANErrors(outFile) {
+	if checkRMAN(outFile) {
 		logger.Error("RMAN ran with errors. Check log for deatils")
 	} else {
-		logger.Info("RMAN ran without error")
+		logger.Info("RMAN run successful")
 	}
 }
 
-func checkRMANErrors(logFileName string) bool {
-	logger.Info("Checking log for errors ...")
+func checkRMAN(logFileName string) bool {
+	logger.Info("Checking log for failure messages ...")
 
 	rmanRegEx := ""
 	oraRegEx  := ""
@@ -174,8 +174,8 @@ func checkRMANErrors(logFileName string) bool {
 	oraCount  := 0
 	regGroup  := 0
 
-	if config.ConfigValues["RMANIgnoreErrors"] != "" {
-		rmanErrors := strings.Split(config.ConfigValues["RMANIgnoreErrors"],";")
+	if config.ConfigValues["RMANIgnoreCodes"] != "" {
+		rmanErrors := strings.Split(config.ConfigValues["RMANIgnoreCodes"],";")
 
 		for _, rmanError := range rmanErrors {
 			// Split each error
@@ -204,13 +204,13 @@ func checkRMANErrors(logFileName string) bool {
 
                                         oraRegEx = strings.Join( []string{ oraRegEx, rmanError }, "")
 				}
-				logger.Infof("Ignoring error - %s", rmanError)
+				logger.Infof("Ignoring failure code - %s", rmanError)
 			} else {
-				logger.Warnf("Invalid error string passed %s - must be ORA-99999 or RMAN-99999 errors", rmanError)
+				logger.Warnf("Invalid failure string passed %s - must be ORA-99999 or RMAN-99999 type codes", rmanError)
 			}
 		}
 	} else {
-		logger.Debug("No errors to be ignored")
+		logger.Debug("No failures to be ignored")
 	}
 
 	ignoreRegEx := ""

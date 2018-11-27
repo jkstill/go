@@ -1,3 +1,11 @@
+/* 
+Version History
+
+2018-11-27	Version 2.1 Luke
+            Amend output to stop the word "error" being printed for easier error checking by external scripts
+			Amend e-mail subject header to include some meaningful information - database, script and completion time
+*/
+
 package main
 
 // Standard imports
@@ -18,7 +26,7 @@ import "github.com/daviesluke/run_rman/oracle/rman"
 // Local Variables
 
 const (
-	version string = "V2.0"
+	version string = "V2.1"
 )
 
 func main() {

@@ -26,8 +26,8 @@ import "github.com/daviesluke/run_rman/resource"
 
 var configFile = flag.String("config"     , "", "Config File Name")
 var database   = flag.String("db"         , "", "Database name")
-var errorEmail = flag.String("erroremail" , "", "E-mail list for errors")
-var email      = flag.String("email"      , "", "E-mail list for success / error")
+var errorEmail = flag.String("erroremail" , "", "E-mail list for failure")
+var email      = flag.String("email"      , "", "E-mail list for success / failure")
 var lock       = flag.String("lock"       , "", "Lock name")
 var logDir     = flag.String("log"        , "", "Directory for logs")
 var resList    = flag.String("resource"   , "", "Resource name")
@@ -52,8 +52,8 @@ func init() {
 
 	flag.StringVar(configFile, "c", "", "Config File Name")
 	flag.StringVar(database  , "d", "", "Database name")
-	flag.StringVar(errorEmail, "e", "", "E-mail list for errors")
-	flag.StringVar(email     , "E", "", "E-mail List for success / error")
+	flag.StringVar(errorEmail, "e", "", "E-mail list for failure")
+	flag.StringVar(email     , "E", "", "E-mail List for success / failure")
 	flag.StringVar(lock      , "l", "", "Lock name")
 	flag.StringVar(logDir    , "L", "", "Alternative Log directory")
 	flag.StringVar(resList   , "r", "", "Resource name")
@@ -109,12 +109,12 @@ func ValidateFlags () {
 			setup.SetLogDir(*logDir)
 			logger.Tracef("Log file now set to %s", setup.LogFileName)
 		} else if flagParam.Name == "erroremail" || flagParam.Name == "e" {
-			logger.Info("Validating error e-mail addresses ...")
+			logger.Info("Validating failure e-mail addresses ...")
 			if utils.CheckRegEx(*errorEmail, emailRegEx) {
 				logger.Debugf("Error E-mail - %s validated", *errorEmail)
-				SetErrorEmail(*errorEmail)
+				SetErrEmail(*errorEmail)
 			} else {
-				logger.Warnf("Invalid error e-mail address list - %s", *errorEmail)
+				logger.Warnf("Invalid failure e-mail address list - %s", *errorEmail)
 			}
 		} else if flagParam.Name == "email" || flagParam.Name == "E" {
 			logger.Info("Validating e-mail addresses ...")
@@ -348,23 +348,23 @@ func SetEmail (email string) {
 	}
 
 	if len(ErrorEmails) == 0 {
-		logger.Trace("Error Email not yet set")
-		SetErrorEmail(email)
+		logger.Trace("Failure Email not yet set")
+		SetErrEmail(email)
 	} else {
-		logger.Trace("Error E-mail already set")
+		logger.Trace("Failure E-mail already set")
 	}
 
 	logger.Debug("Process complete")
 }
 
-func SetErrorEmail (email string) {
-	logger.Info("Setting e-mail for errors ...")
+func SetErrEmail (email string) {
+	logger.Info("Setting e-mail for failure ...")
 
 	ErrorEmails = strings.Split(email,";")
 	logger.Trace("ErrorEmails string array set")
 
 	for _ , emailAddress := range ErrorEmails {
-		logger.Infof("Error E-mail set to %s", emailAddress)
+		logger.Infof("Failure E-mail set to %s", emailAddress)
 	}
 
 	logger.Debug("Process complete")

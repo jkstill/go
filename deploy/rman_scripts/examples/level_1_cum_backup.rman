@@ -1,0 +1,1 @@
+backup as compressed backupset format '<format>/db_%d_%I_%T_%s_%t.bkp' incremental level 1 cumulative database tag 'lvl1_db' plus archivelog not backed up 2 times tag 'lvl1_arch';

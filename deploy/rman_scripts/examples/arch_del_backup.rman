@@ -1,0 +1,1 @@
+backup as compressed backupset format '<format>/arch_%d_%I_%T_%s_%t.bkp' filesperset 10 archivelog all not backed up 2 times delete input;

@@ -1,0 +1,5 @@
+run {
+<parallel>
+backup as compressed backupset format '<format>/db_%d_%I_%T_%s_%t.bkp' incremental level 0 database tag 'lvl0_db' plus archivelog not backed up 2 times tag 'lvl0_arch';
+delete noprompt obsolete;
+}

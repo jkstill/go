@@ -1,0 +1,42 @@
+########################################################################
+# Logging configuration options
+#
+# RLOG_LOG_LEVEL        This describes the logging level to output
+#                       Levels in order 
+#                       CRITICAL
+#                       ERROR
+#                       WARN
+#                       INFO
+#                       DEBUG
+#                       Default is INFO
+#
+# RLOG_TRACE_LEVEL      This describes the tracing level required
+#                       Levels are from 1-5
+#                       Default Level is none
+#
+# RLOG_TIME_FORMAT      This is the time format and maybe the following
+#                       ANSIC       = "Mon Jan _2 15:04:05 2006"
+#                       UnixDate    = "Mon Jan _2 15:04:05 MST 2006"
+#                       RubyDate    = "Mon Jan 02 15:04:05 -0700 2006"
+#                       RFC822      = "02 Jan 06 15:04 MST"
+#                       RFC822Z     = "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
+#                       RFC850      = "Monday, 02-Jan-06 15:04:05 MST"
+#                       RFC1123     = "Mon, 02 Jan 2006 15:04:05 MST"
+#                       RFC1123Z    = "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
+#                       RFC3339     = "2006-01-02T15:04:05Z07:00"
+#                       RFC3339Nano = "2006-01-02T15:04:05.999999999Z07:00"
+#                       Kitchen     = "3:04PM"
+#                       Stamp       = "Jan _2 15:04:05"
+#                       StampMilli  = "Jan _2 15:04:05.000"
+#                       StampMicro  = "Jan _2 15:04:05.000000"
+#                       StampNano   = "Jan _2 15:04:05.000000000"
+#
+#                       Or you can supply your own format using the keywords . "Mon Jan 2 15:04:05 -0700 MST 2006".
+#
+#                       For example . "2006-01-02:15:04:05" 
+#                       to get the date format for 26th November 2018 at 2:24:03 PM -> 2018-11-26:14:24:03
+#
+#                       Default is RFC3339
+#
+########################################################################
+RLOG_TIME_FORMAT  =  2006-01-02:15:04:05

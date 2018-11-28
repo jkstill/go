@@ -523,7 +523,7 @@ func SendLog (status string) {
 
 		for _, receiver := range recipientList {
 			if err := emailConnect.Rcpt(receiver); err != nil {
-				Errorf("Unable to set the receiver address %s - %s", receiver)
+				Errorf("Unable to set the receiver address - %s", receiver)
 			}
 		}
 
@@ -532,6 +532,12 @@ func SendLog (status string) {
 		body, err := emailConnect.Data()
 		if err != nil {
 			Error("Unable to open writer for e-mail")
+		}
+
+		// Set up the To list
+
+		for _, receiver := range recipientList {
+			fmt.Fprintf(body, "To: %s\r\n", receiver)
 		}
 
 		// Set up the header

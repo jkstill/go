@@ -1,0 +1,23 @@
+#############################################################################
+# 
+# Resource file used for rman backups
+#
+# Format is 
+# 	NAME:VALUE
+#
+# Where NAME is an arbitrary name for the resource
+#   and VALUE is the number of units available
+#
+# Example
+#
+# TAPE:10
+#
+# Indicates that there are 10 TAPE resources available
+#
+# To use resources from the command line do 
+#
+# rman_backup.sh -r TAPE:2 /home/oracle/rman/rman_scripts/level_0_backup.rman
+#
+# Indicates there are 2 TAPE resources used by the level 0 backup
+#
+##############################################################################

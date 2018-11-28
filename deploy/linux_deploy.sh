@@ -26,7 +26,7 @@ fi
 
 cd $DeployDir
 
-zip -r config scripts rman_scripts $ZipFileName
+zip -r $ZipFileName config scripts rman_scripts
 if [[ $? -ne 0 ]]
 then
 	echo "Error: Zip failed. Exiting ..."
@@ -53,16 +53,17 @@ then
 	exit 1
 fi
 
-git commit -m "Linux Deploy"
+git config --global user.name daviesluke
+git config --global user.email davies@pythian.com
+
+git commit -am "Linux Deploy"
 if [[ $? -ne 0 ]]
 then
 	echo "Error. Unable to commit files for git. Exiting ..."
 	exit 1
 fi
 
-git push <<!
-c6ec4be99ebf88c26cec7c7b984a872b5dc15fd6
-!
+git push
 if [[ $? -ne 0 ]]
 then
 	echo "Error. Unable to push for git. Exiting ..."

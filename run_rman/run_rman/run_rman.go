@@ -26,7 +26,7 @@ import "github.com/daviesluke/run_rman/oracle/rman"
 // Local Variables
 
 const (
-	version string = "V2.1"
+	version string = "V2.1.1"
 )
 
 func main() {

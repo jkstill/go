@@ -377,7 +377,7 @@ func RenameLog () {
 
 	t := time.Now()
 
-	tFormat := t.Format("20060201150405")
+	tFormat := t.Format("20060102150405")
 	logger.Debugf("Time set to %s", tFormat)
 
 	newLogFileName := strings.Join( []string{ setup.BaseName, "_", setup.Database, "_", config.RMANScriptBase, "_", tFormat, ".", setup.LogSuffix}, "" )

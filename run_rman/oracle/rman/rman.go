@@ -158,7 +158,7 @@ func runRMAN(cmdFile string, outFile string) {
 	}
 
 	if checkRMAN(outFile) {
-		logger.Error("RMAN ran with errors. Check log for deatils")
+		logger.Error("RMAN ran with errors. Check log for details")
 	} else {
 		logger.Info("RMAN run successful")
 	}

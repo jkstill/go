@@ -1,6 +1,14 @@
 /* 
 Version History
 
+2018-02-11  Version 2.1.2 Luke
+			Minor change to correct log data format in history file
+			Fixed bug to clean out temporary command files from rman command directory
+
+2018-02-05  Version 2.1.1 Luke
+			Minor change to correct log date format
+			Minor change to correct error output typo
+
 2018-11-27	Version 2.1 Luke
             Amend output to stop the word "error" being printed for easier error checking by external scripts
 			Amend e-mail subject header to include some meaningful information - database, script and completion time
@@ -26,7 +34,7 @@ import "github.com/daviesluke/run_rman/oracle/rman"
 // Local Variables
 
 const (
-	version string = "V2.1.1"
+	version string = "V2.1.2"
 )
 
 func main() {

@@ -420,7 +420,7 @@ func Cleanup() {
 
 	// Removing old run files for config files (over 7 days old)
 
-	regEx = utils.ReplaceString(config.RMANScript,"\\.","\\.")
+	regEx = utils.ReplaceString(filepath.Base(config.RMANScript),"\\.","\\.")
 	regEx = strings.Join( []string { "^", regEx , "\\.[0-9]+$" } , "")
 	removeOldFiles(setup.RMANScriptDir, regEx, 7)
 

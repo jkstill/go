@@ -443,7 +443,7 @@ func WriteHistory (status string) {
 		
 		timeDiff := time.Since(startTime)
 
-		writeString := strings.Join ( []string{ time.Now().Format("2006/02/01:15:04:05"), database, scriptName, strconv.FormatFloat(timeDiff.Seconds(),'f',0,64), status }, " ")
+		writeString := strings.Join ( []string{ time.Now().Format("2006/01/02:15:04:05"), database, scriptName, strconv.FormatFloat(timeDiff.Seconds(),'f',0,64), status }, " ")
 	
 		Tracef("Writing - %s", writeString)
 

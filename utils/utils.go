@@ -15,8 +15,8 @@ import "time"
 
 // Local imports
 
-import "github.com/daviesluke/logger"
-import "github.com/daviesluke/mitchellh/go-ps"
+import "../logger"
+import "github.com/mitchellh/go-ps"
 
 // Local functions 
 

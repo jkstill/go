@@ -8,7 +8,7 @@ import "time"
 
 // Local imports
 
-import "github.com/daviesluke/logger"
+import "../logger"
 
 // local Variables
 

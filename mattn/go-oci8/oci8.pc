@@ -1,9 +1,6 @@
-prefix=/usr
-includedir=${prefix}/include/oracle/12.1/client64
-libdir=${prefix}/lib/oracle/12.1/client64/lib
-
+ORACLE_HOME=/u01/app/oracle/product/12.1.0/c12
 Name: oci8
-Description: Oracle Instant Client
+Description: Oracle Call Interface
 Version: 12.1
-Cflags: -I${includedir}
-Libs: -L${libdir} -lclntsh
+Cflags: -I${ORACLE_HOME}/rdbms/public
+Libs: -L${ORACLE_HOME}/lib -Wl,-rpath,${ORACLE_HOME}/lib -lclntsh

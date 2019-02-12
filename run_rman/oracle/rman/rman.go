@@ -12,13 +12,13 @@ import "strings"
 
 // Local imports
 
-import "github.com/daviesluke/filelock"
-import "github.com/daviesluke/logger"
-import "github.com/daviesluke/setup"
-import "github.com/daviesluke/utils"
-import "github.com/daviesluke/run_rman/config"
-import "github.com/daviesluke/run_rman/general"
-import "github.com/daviesluke/run_rman/locker"
+import "../../../filelock"
+import "../../../logger"
+import "../../../setup"
+import "../../../utils"
+import "../../../run_rman/config"
+import "../../../run_rman/general"
+import "../../../run_rman/locker"
 
 // local variables
 

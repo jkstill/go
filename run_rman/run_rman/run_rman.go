@@ -20,16 +20,16 @@ package main
 
 // Local imports
 
-import "github.com/daviesluke/logger"
-import "github.com/daviesluke/setup"
-import "github.com/daviesluke/utils"
+import "../../logger"
+import "../../setup"
+import "../../utils"
 
-import "github.com/daviesluke/run_rman/config"
-import "github.com/daviesluke/run_rman/general"
-import "github.com/daviesluke/run_rman/locker"
-import "github.com/daviesluke/run_rman/resource"
-import "github.com/daviesluke/run_rman/oracle"
-import "github.com/daviesluke/run_rman/oracle/rman"
+import "../config"
+import "../general"
+import "../locker"
+import "../resource"
+import "../oracle"
+import "../oracle/rman"
 
 // Local Variables
 

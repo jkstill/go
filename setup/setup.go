@@ -10,7 +10,7 @@ import "strconv"
 
 // Local imports
 
-import "github.com/daviesluke/logger"
+import "../logger"
 
 // Global Variables
 

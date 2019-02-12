@@ -16,7 +16,7 @@ import "time"
 
 // local imports
 
-import "github.com/daviesluke/romana/rlog"
+import "github.com/jkstill/rlog"
 
 // Local variables
 

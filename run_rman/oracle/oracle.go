@@ -7,11 +7,11 @@ import "strings"
 
 // Local imports
 
-import "github.com/daviesluke/logger"
-import "github.com/daviesluke/setup"
-import "github.com/daviesluke/utils"
-import "github.com/daviesluke/run_rman/config"
-import _ "github.com/daviesluke/mattn/go-oci8"
+import "../../logger"
+import "../../setup"
+import "../../utils"
+import "../../run_rman/config"
+import _  "github.com/mattn/go-oci8"
 
 // local variables
 

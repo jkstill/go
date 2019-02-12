@@ -10,8 +10,8 @@ import "strings"
 
 // local imports
 
-import "github.com/daviesluke/logger"
-import "github.com/daviesluke/utils"
+import "../../logger"
+import "../../utils"
 
 // Global variables
 

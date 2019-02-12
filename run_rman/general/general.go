@@ -12,12 +12,12 @@ import "time"
 
 // Local imports
 
-import "github.com/daviesluke/logger"
-import "github.com/daviesluke/setup"
-import "github.com/daviesluke/utils"
-import "github.com/daviesluke/run_rman/config"
-import "github.com/daviesluke/run_rman/locker"
-import "github.com/daviesluke/run_rman/resource"
+import "../../logger"
+import "../../setup"
+import "../../utils"
+import "../../run_rman/config"
+import "../../run_rman/locker"
+import "../../run_rman/resource"
 
 
 // local Variables

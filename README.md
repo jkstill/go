@@ -1,4 +1,8 @@
-# go
+# RMAN Framework
+
+## The Golang version
+
+## Installing Golang
 
 Go Installation 
 
@@ -9,47 +13,140 @@ For linux - quick guide
 1) Untar into -> tar -C /usr/local -xzf go1.11.linux-amd64.tar.gz
 2) PATH=$PATH:/usr/local/go/bin
 
+## Install dependencies
 
-run_rman Installation
+Three external go packages are to be installed in ~/go
 
-Default GOPATH is ~/go
+- rlog
+  - github.com/jkstill/rlog
+  - this is a fork of github.com/romana/rlog
+- go-ps
+  - github.com/mitchellh/go-ps
+- oci8
+  - github.com/mattn/go-oci8
 
-So to install for default is 
+Right now 2 of them can be installed, and the third can be installed following some setup.
 
-1) mkdir ~/go/src/github.com/daviesluke
-2) mkdir ~/go/bin
-3) cd ~/go/src/github.com/daviesluke
-4) git clone https://github.com/daviesluke/go
-5) Follow oracle setup
-6) cd ~/go/src/github.com/daviesluke/run_rman/run_rman
-7) go install
-8) ~/go/bin/run_rman
+First make sure GOPATH is not set
 
-For installtion to non-default location
+```bash
+unset GOPATH
+```
 
-1) Set environment GOPATH to fully qualified directory path e.g. /home/luke/testing/go
-2) mkdir -p $GOPATH/src/github.com/daviesluke
-3) mkdir -p $GOPATH/bin
-4) cd $GOPATH/src/github.com/daviesluke
-5) git clone https://github.com/daviesluke/go
-6) Follow oracle setup
-7) cd $GOPATH/src/github.com/daviesluke/run_rman/run_rman
-8) go install
-9) PATH=$GOPATH/bin:$PATH
-10) run_rman 
+### rlog
+
+```bash
+  go get github.com/jkstill/rlog
+```
+
+### go-ps
+
+```bash
+  go get github.com/mitchellh/go-ps
+```
 
 
-Oracle Setup
+## Installing run_rman
 
-1) Set up oci8.pc file with following contents - changing ORACLE_HOME and version as required
+Now create a directory for the RMAN Framework project
 
-		ORACLE_HOME=/u01/app/oracle/product/18.0.0.0/db1
-		Name: oci8
-		Description: Oracle Call Interface
-		Version: 18.0
-		Cflags: -I${ORACLE_HOME}/rdbms/public
-		Libs: -L${ORACLE_HOME}/lib -Wl,-rpath,${ORACLE_HOME}/lib -lclntsh
+For example
 
-2) Set env variable PKG_CONFIG_PATH to directory containing the oci8.pc file
-3) go get github.com/daviesluke/mattn/go-oci8
+```bash
+  mkdir -p ~/oracle/rman/framework/go
+  cd ~/oracle/rman/framework/go
+```
 
+Now clone the repo
+
+```bash
+  git clone https://github.com/daviesluke/go
+```
+
+ Now setup the _mattn/go-oci8/oci8.pc_ file as follows,  changing ORACLE_HOME and version as required.
+
+```text
+ORACLE_HOME=/u01/app/oracle/product/18.0.0.0/db1
+Name: oci8
+Description: Oracle Call Interface
+Version: 18.0
+Cflags: -I${ORACLE_HOME}/rdbms/public
+Libs: -L${ORACLE_HOME}/lib -Wl,-rpath,${ORACLE_HOME}/lib -lclntsh
+```
+
+Now you are ready to install oci8.
+
+Set env variable PKG_CONFIG_PATH to directory containing the oci8.pc file
+
+eg.
+
+```bash
+export PKG_CONFIG_PATH=/$HOME/pythian/rman/framework/go/mattn/go-oci8
+```
+
+Now install go-oci8
+
+```bash
+go get github.com/daviesluke/mattn/go-oci8
+```
+
+Now you should see the following packages installed:
+
+```bash
+>  ls -ld ~/go/pkg/*/*/*/*
+-rw-r--r-- 1 jkstill dba  95840 Feb 12 14:50 /home/jkstill/go/pkg/linux_amd64/github.com/jkstill/rlog.a
+-rw-r--r-- 1 jkstill dba 630512 Feb 12 13:55 /home/jkstill/go/pkg/linux_amd64/github.com/mattn/go-oci8.a
+-rw-r--r-- 1 jkstill dba  27260 Feb 12 14:13 /home/jkstill/go/pkg/linux_amd64/github.com/mitchellh/go-ps.a
+```
+
+Now build the binary:
+
+```bash
+
+>  ls -l
+total 5800
+-rw-r--r-- 1 jkstill dba    2163 Feb 12 15:30 run_rman.go
+
+jkstill@poirot  ~/pythian/rman/framework/go/run_rman/run_rman $
+>  go build
+
+jkstill@poirot  ~/pythian/rman/framework/go/run_rman/run_rman $
+>  ls -l
+total 5800
+-rwxr-xr-x 1 jkstill dba 5932528 Feb 12 15:49 run_rman
+-rw-r--r-- 1 jkstill dba    2163 Feb 12 15:30 run_rman.go
+
+jkstill@poirot  ~/pythian/rman/framework/go/run_rman/run_rman $
+>  ./run_rman -h
+Usage of ./run_rman:
+  -E string
+    	E-mail List for success / failure
+  -L string
+    	Alternative Log directory
+  -c string
+    	Config File Name
+  -config string
+    	Config File Name
+  -d string
+    	Database name
+  -db string
+    	Database name
+  -e string
+    	E-mail list for failure
+  -email string
+    	E-mail list for success / failure
+  -erroremail string
+    	E-mail list for failure
+  -l string
+    	Lock name
+  -lock string
+    	Lock name
+  -log string
+    	Directory for logs
+  -r string
+    	Resource name
+  -resource string
+    	Resource name
+
+
+```

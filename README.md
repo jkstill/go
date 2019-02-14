@@ -18,7 +18,7 @@ For linux - quick guide
 Three external go packages are to be installed in ~/go
 
 - rlog
-  - github.com/jkstill/rlog
+  - github.com/pythian/rlog
   - this is a fork of github.com/romana/rlog
 - go-ps
   - github.com/mitchellh/go-ps
@@ -27,7 +27,9 @@ Three external go packages are to be installed in ~/go
 
 Right now 2 of them can be installed, and the third can be installed following some setup.
 
-First make sure GOPATH is not set
+First make sure GOPATH is not set, or is set to the default location of $HOME/go
+Note: relative paths are used for the go 'import' statements when importing packages that are local to this project
+
 
 ```bash
 unset GOPATH
@@ -36,7 +38,7 @@ unset GOPATH
 ### rlog
 
 ```bash
-  go get github.com/jkstill/rlog
+  go get github.com/pythian/rlog
 ```
 
 ### go-ps
@@ -94,7 +96,7 @@ Now you should see the following packages installed:
 
 ```bash
 >  ls -ld ~/go/pkg/*/*/*/*
--rw-r--r-- 1 jkstill dba  95840 Feb 12 14:50 /home/jkstill/go/pkg/linux_amd64/github.com/jkstill/rlog.a
+-rw-r--r-- 1 jkstill dba  95840 Feb 12 14:50 /home/jkstill/go/pkg/linux_amd64/github.com/pythian/rlog.a
 -rw-r--r-- 1 jkstill dba 630512 Feb 12 13:55 /home/jkstill/go/pkg/linux_amd64/github.com/mattn/go-oci8.a
 -rw-r--r-- 1 jkstill dba  27260 Feb 12 14:13 /home/jkstill/go/pkg/linux_amd64/github.com/mitchellh/go-ps.a
 ```

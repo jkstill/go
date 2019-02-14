@@ -16,7 +16,7 @@ import "time"
 
 // local imports
 
-import "github.com/jkstill/rlog"
+import "github.com/pythian/rlog"
 
 // Local variables
 
